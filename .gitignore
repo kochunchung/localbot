@@ -1,0 +1,67 @@
+# ===== 機密 / 個人資料（絕對不要上傳）=====
+.env
+*.env
+!.env.example
+server/.localbot_secrets.json
+*.pfx
+*.p12
+*.jks
+*.keystore
+key.properties
+google-services.json
+GoogleService-Info.plist
+
+# 個人專屬 Bot 程式（含 API 金鑰、使用者 ID）
+server/example_bot2.py
+server/my_bot*.py
+
+# ===== 執行期資料 =====
+server/localbot.db
+*.db
+*.sqlite
+server/media/*
+!server/media/stickers/
+server/media/stickers/*
+!server/media/stickers/.gitkeep
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+.pytest_cache/
+*.zip
+
+# ===== 下載暫存 / 系統檔 =====
+*.crdownload
+*.part
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# ===== 編譯產物（APK 請放到 GitHub Releases）=====
+*.apk
+*.aab
+*.ipa
+
+# ===== Flutter / Android / iOS =====
+flutter_app/**/.dart_tool/
+flutter_app/**/build/
+flutter_app/**/.flutter-plugins
+flutter_app/**/.flutter-plugins-dependencies
+flutter_app/**/android/.gradle/
+flutter_app/**/android/.kotlin/
+flutter_app/**/android/local.properties
+flutter_app/**/android/app/debug
+flutter_app/**/android/app/profile
+flutter_app/**/android/app/release
+flutter_app/**/ios/Flutter/Generated.xcconfig
+flutter_app/**/ios/Flutter/flutter_export_environment.sh
+flutter_app/**/ios/Pods/
+flutter_app/**/ios/.symlinks/
+flutter_app/**/*.iml
+.idea/
+*.log
+
+# 上傳前檢查報告（只給自己看）
+_上傳前安全檢查.md
