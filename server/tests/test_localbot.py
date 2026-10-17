@@ -160,3 +160,18 @@ def test_line_bot_api_bridge():
 
     content = api.get_message_content("msg_123")
     assert content.content == b"mock binary data"
+
+
+def test_parse_quoted_message_id():
+    """App 長按「回覆」送出的文字訊息帶 quotedMessageId（v1/v2 與 v3 SDK 都讀得到）。"""
+    data = {"type": "message", "replyToken": "r", "source": {"type": "user", "userId": "u1"},
+            "message": {"id": "m2", "type": "text", "text": "好", "quotedMessageId": "bot_1"}}
+    event = parse_event(data)
+    assert event.message.quoted_message_id == "bot_1"
+    assert event.message.quotedMessageId == "bot_1"
+    plain = parse_event({**data, "message": {"id": "m3", "type": "text", "text": "嗨"}})
+    assert plain.message.quoted_message_id is None
+
+    from localbot.v3.webhooks.models import parse_event as parse_v3
+    assert parse_v3(data).message.quoted_message_id == "bot_1"
+    assert parse_v3({**data, "message": {"id": "m3", "type": "text", "text": "嗨"}}).message.quoted_message_id is None

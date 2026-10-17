@@ -1,0 +1,1699 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="data:,">
+<title>LocalBot 管理後台</title>
+<style nonce="__NONCE__">
+:root {
+  --brand: #4F46E5; --brand-strong: #4338CA; --brand-soft: #EEF2FF; --on-brand: #fff;
+  --accent: #0EA5E9;
+  --bg: #F6F7FB; --surface: #fff; --surface-2: #F1F3F9; --border: #E2E5EF;
+  --text: #1B1F2E; --muted: #667085;
+  --ok: #16A34A; --ok-soft: #DCFCE7; --warn: #B45309; --warn-soft: #FEF3C7;
+  --danger: #DC2626; --danger-soft: #FEE2E2;
+  --shadow: 0 1px 2px rgba(16,24,40,.06), 0 4px 16px rgba(16,24,40,.06);
+  --radius: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --brand: #818CF8; --brand-strong: #A5B4FC; --brand-soft: #25264A; --on-brand: #12142B;
+    --accent: #38BDF8;
+    --bg: #0F1220; --surface: #171B2E; --surface-2: #1E2338; --border: #2B3150;
+    --text: #E8EAF6; --muted: #98A2C3;
+    --ok: #4ADE80; --ok-soft: #14301F; --warn: #FBBF24; --warn-soft: #3A2E10;
+    --danger: #F87171; --danger-soft: #3B1D22;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 16px rgba(0,0,0,.35);
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  font: 14px/1.5 system-ui, -apple-system, "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+  background: var(--bg); color: var(--text);
+}
+h1, h2, h3 { margin: 0; line-height: 1.3; }
+button, input, select, textarea { font: inherit; color: inherit; }
+.hidden { display: none !important; }
+.muted { color: var(--muted); }
+.mono { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 12px; }
+.grow { flex: 1; }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.stack { display: flex; flex-direction: column; gap: 12px; }
+
+/* ---------- 按鈕與表單 ---------- */
+.btn {
+  border: 1px solid var(--border); background: var(--surface); border-radius: 8px;
+  padding: 6px 12px; cursor: pointer; line-height: 1.4; white-space: nowrap;
+}
+.btn:hover { background: var(--surface-2); }
+.btn:focus-visible, .nav button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, .icon-btn:focus-visible {
+  outline: 2px solid var(--brand); outline-offset: 1px;
+}
+.btn.primary { background: var(--brand); border-color: var(--brand); color: var(--on-brand); font-weight: 600; }
+.btn.primary:hover { background: var(--brand-strong); }
+.btn.danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 40%, var(--border)); }
+.btn.danger:hover { background: var(--danger-soft); }
+.btn.danger.solid { background: var(--danger); color: #fff; border-color: var(--danger); }
+.btn.small { padding: 3px 8px; font-size: 12.5px; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.icon-btn { border: 0; background: transparent; cursor: pointer; font-size: 16px; padding: 4px 8px; border-radius: 6px; color: var(--muted); }
+.icon-btn:hover { background: var(--surface-2); }
+input[type=text], input[type=password], input[type=search], select, textarea {
+  width: 100%; border: 1px solid var(--border); background: var(--surface); border-radius: 8px; padding: 7px 10px;
+}
+textarea { resize: vertical; min-height: 96px; }
+label.field, div.field { display: flex; flex-direction: column; gap: 4px; font-weight: 600; font-size: 13px; }
+label.field > span.hint, div.field > span.hint { font-weight: 400; color: var(--muted); font-size: 12.5px; }
+
+/* ---------- 版面 ---------- */
+.shell { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
+.side { background: var(--surface); border-right: 1px solid var(--border); padding: 20px 12px; display: flex; flex-direction: column; gap: 4px; position: sticky; top: 0; height: 100vh; }
+.brand { display: flex; align-items: center; gap: 10px; padding: 4px 10px 18px; font-weight: 700; font-size: 16px; }
+.brand .logo { width: 28px; height: 28px; border-radius: 8px; background: var(--brand); color: var(--on-brand); display: grid; place-items: center; font-weight: 800; }
+.nav { display: flex; flex-direction: column; gap: 2px; }
+.nav button { text-align: left; border: 0; background: transparent; padding: 9px 12px; border-radius: 8px; cursor: pointer; color: var(--muted); font-weight: 500; }
+.nav button:hover { background: var(--surface-2); color: var(--text); }
+.nav button.active { background: var(--brand-soft); color: var(--brand); font-weight: 700; }
+.side .foot { margin-top: auto; padding: 10px; }
+main { padding: 24px 28px 48px; min-width: 0; max-width: 1180px; width: 100%; }
+.page-head { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+.page-head h2 { font-size: 20px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px; }
+.card h3 { font-size: 15px; margin-bottom: 12px; }
+.grid { display: grid; gap: 14px; }
+.grid.stats { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); margin-bottom: 14px; }
+.grid.two { grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); }
+.stat .label { color: var(--muted); font-size: 12.5px; }
+.stat .value { font-size: 26px; font-weight: 700; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.stat .sub { color: var(--muted); font-size: 12.5px; }
+
+@media (max-width: 800px) {
+  .shell { grid-template-columns: 1fr; }
+  .side { position: static; height: auto; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px; padding: 10px 12px; border-right: 0; border-bottom: 1px solid var(--border); }
+  .brand { padding: 0; grid-column: 1; grid-row: 1; }
+  .side .foot { margin: 0; padding: 0; grid-column: 2; grid-row: 1; }
+  .nav { flex-direction: row; overflow-x: auto; grid-column: 1 / -1; grid-row: 2; }
+  .nav button { white-space: nowrap; padding: 7px 10px; }
+  main { padding: 16px 14px 40px; }
+}
+
+/* ---------- 表格 ---------- */
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+table { border-collapse: collapse; width: 100%; }
+th, td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--border); vertical-align: middle; }
+th { font-size: 12.5px; color: var(--muted); font-weight: 600; background: var(--surface-2); white-space: nowrap; }
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr.clickable { cursor: pointer; }
+tbody tr.clickable:hover { background: var(--surface-2); }
+td.actions { white-space: nowrap; text-align: right; }
+td .name { font-weight: 600; }
+.scroll-x { overflow-x: auto; }
+td.mono { white-space: nowrap; }
+.empty { padding: 28px; text-align: center; color: var(--muted); }
+.badge { display: inline-flex; align-items: center; gap: 5px; padding: 1px 8px; border-radius: 99px; font-size: 12px; font-weight: 600; background: var(--surface-2); color: var(--muted); }
+.badge.ok { background: var(--ok-soft); color: var(--ok); }
+.badge.bad { background: var(--danger-soft); color: var(--danger); }
+.badge.warn { background: var(--warn-soft); color: var(--warn); }
+.badge.brand { background: var(--brand-soft); color: var(--brand); }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+/* ---------- 排程 / 日誌 ---------- */
+input[type=time], input[type=number], input[type=datetime-local] { border: 1px solid var(--border); background: var(--surface); border-radius: 8px; padding: 7px 10px; max-width: 260px; }
+.row.end { justify-content: flex-end; flex-wrap: nowrap; }
+.row.center { justify-content: center; margin-top: 12px; }
+.row.pick { gap: 6px; font-weight: 400; }
+.pick-list { max-height: 180px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; display: flex; flex-direction: column; gap: 4px; }
+.grow-input { margin: 10px 0; }
+textarea.mono { font-size: 12px; }
+
+/* ---------- 登入 ---------- */
+.login-wrap { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
+.login { width: 100%; max-width: 360px; }
+.login .brand { padding: 0 0 14px; font-size: 18px; }
+.error-text { color: var(--danger); min-height: 1.4em; font-size: 13px; }
+
+/* ---------- 圖表 ---------- */
+.chart { width: 100%; height: auto; display: block; }
+.chart .axis { stroke: var(--border); stroke-width: 1; }
+.chart text { fill: var(--muted); font-size: 11px; }
+.chart .bar-in { fill: var(--brand); }
+.chart .bar-out { fill: var(--accent); }
+.legend { display: flex; gap: 14px; font-size: 12.5px; color: var(--muted); margin-top: 6px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+.legend i.in { background: var(--brand); } .legend i.out { background: var(--accent); }
+
+/* ---------- 對話 ---------- */
+.conv { display: flex; flex-direction: column; gap: 8px; max-height: 340px; overflow-y: auto; padding: 10px; background: var(--surface-2); border-radius: 10px; }
+.bubble { max-width: 78%; padding: 7px 11px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); align-self: flex-start; word-break: break-word; white-space: pre-wrap; }
+.bubble.out { align-self: flex-end; background: var(--brand-soft); border-color: transparent; }
+.bubble .meta { color: var(--muted); font-size: 11px; margin-top: 2px; }
+.bubble img.thumb, .thumb { max-width: 160px; max-height: 120px; border-radius: 8px; display: block; margin-bottom: 4px; }
+.summary { max-width: 420px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---------- Rich Menu ---------- */
+.bot-avatar { width: 40px; height: 40px; border-radius: 12px; object-fit: cover; flex: none; display: grid; place-items: center; background: linear-gradient(135deg, var(--brand), var(--accent)); color: var(--on-brand); font-weight: 700; font-size: 18px; }
+.bot-avatar.large { width: 72px; height: 72px; border-radius: 20px; font-size: 30px; }
+.menus { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+.preview { position: relative; width: 100%; background: var(--surface-2); border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
+.preview img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; }
+.preview .area { position: absolute; border: 1.5px dashed var(--brand); background: color-mix(in srgb, var(--brand) 12%, transparent); }
+.preview .noimg { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 13px; }
+.kv { display: grid; grid-template-columns: 110px 1fr; gap: 6px 12px; }
+.kv dt { color: var(--muted); } .kv dd { margin: 0; word-break: break-all; }
+pre.ai-out { margin: 0; padding: 12px; background: var(--surface-2); border-radius: 8px; max-height: 320px; overflow: auto; white-space: pre-wrap; word-break: break-word; font: inherit; font-size: 14px; line-height: 1.55; }
+.ai-key { display: grid; gap: 8px; padding: 12px 0; border-top: 1px solid var(--border); }
+.ai-key:first-of-type { border-top: 0; }
+.ai-row > label.field { flex: 1; min-width: 220px; }
+.ai-key .hint { color: var(--muted); font-size: 12.5px; }
+.ai-key input[type=password] { flex: 1; min-width: 220px; width: auto; }
+input[type=number] { width: 120px; }
+pre.json { margin: 0; padding: 10px; background: var(--surface-2); border-radius: 8px; overflow: auto; max-height: 360px; font-size: 12px; white-space: pre-wrap; word-break: break-all; }
+.big-code { font: 700 28px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace; letter-spacing: .08em; text-align: center; padding: 12px; background: var(--surface-2); border-radius: 10px; user-select: all; }
+.qr-wrap { display: flex; justify-content: center; }
+.qr-box { background: #fff; padding: 8px; border-radius: 10px; line-height: 0; border: 1px solid var(--border); }
+.page-head.sub { margin-top: 28px; }
+.page-head h3 { font-size: 16px; }
+.secret-value { display: block; padding: 8px 10px; background: var(--surface-2); border-radius: 8px; word-break: break-all; user-select: all; }
+
+/* ---------- Dialog / Toast ---------- */
+dialog.modal { border: 0; border-radius: 14px; padding: 0; width: min(520px, calc(100vw - 24px)); max-height: calc(100vh - 32px); background: var(--surface); color: var(--text); box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+dialog.modal.wide { width: min(760px, calc(100vw - 24px)); }
+dialog.modal::backdrop { background: rgba(10, 12, 24, .55); }
+dialog.modal[open] { display: flex; flex-direction: column; }
+dialog.modal > header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+dialog.modal > header h3 { font-size: 16px; }
+dialog.modal .modal-body { padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+dialog.modal > footer { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+#toasts { position: fixed; right: 16px; bottom: 16px; display: flex; flex-direction: column; gap: 8px; z-index: 1000; max-width: calc(100vw - 32px); }
+.toast { background: var(--text); color: var(--bg); padding: 10px 14px; border-radius: 10px; box-shadow: var(--shadow); font-weight: 500; }
+.toast.error { background: var(--danger); color: #fff; }
+.toast.ok { background: var(--ok); color: #fff; }
+@media (prefers-color-scheme: dark) { .toast.ok { color: #052e14; } }
+@media (prefers-reduced-motion: no-preference) { .toast { animation: pop .18s ease-out; } @keyframes pop { from { transform: translateY(6px); opacity: 0; } } }
+</style>
+</head>
+<body>
+<div id="toasts" role="status" aria-live="polite"></div>
+<div id="root"></div>
+
+<script nonce="__NONCE__">
+"use strict";
+/* ============================================================
+ * LocalBot 管理後台前端
+ * 所有來自伺服器的資料一律用 textContent / createTextNode 輸出，絕不以 HTML 字串拼接。
+ * ============================================================ */
+const state = { csrf: null, tab: "dashboard", timer: null, viewToken: 0, bots: [], botSel: "", serverUrl: "" };
+const enc = encodeURIComponent;
+
+// ---------- DOM 小工具 ----------
+function h(tag, props, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(props || {})) {
+    if (v === null || v === undefined || v === false) continue;
+    if (k === "class") el.className = v;
+    else if (k === "text") el.textContent = v;
+    else if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+    else if (k === "for") el.htmlFor = v;
+    else if (k === "dataset") Object.assign(el.dataset, v);
+    else if (k in el && k !== "list") el[k] = v;
+    else el.setAttribute(k, v === true ? "" : v);
+  }
+  for (const kid of kids.flat(Infinity)) {
+    if (kid === null || kid === undefined || kid === false) continue;
+    el.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
+  }
+  return el;
+}
+const svg = (tag, attrs, ...kids) => {
+  const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for (const [k, v] of Object.entries(attrs || {})) el.setAttribute(k, v);
+  kids.forEach((k) => el.append(k));
+  return el;
+};
+const $ = (sel, el = document) => el.querySelector(sel);
+const pad = (n) => String(n).padStart(2, "0");
+function fmtTime(ms) {
+  if (!ms) return "—";
+  const d = new Date(ms);
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function ago(ms) {
+  if (!ms) return "—";
+  const s = Math.max(0, Math.floor((Date.now() - ms) / 1000));
+  if (s < 60) return "剛剛";
+  if (s < 3600) return Math.floor(s / 60) + " 分鐘前";
+  if (s < 86400) return Math.floor(s / 3600) + " 小時前";
+  return Math.floor(s / 86400) + " 天前";
+}
+function fmtUptime(sec) {
+  const d = Math.floor(sec / 86400), hh = Math.floor((sec % 86400) / 3600), m = Math.floor((sec % 3600) / 60);
+  return d ? `${d} 天 ${hh} 小時` : hh ? `${hh} 小時 ${m} 分` : `${m} 分鐘`;
+}
+const num = (n) => Number(n || 0).toLocaleString("zh-TW");
+function shortId(id, n = 14) { return id.length > n ? id.slice(0, n) + "…" : id; }
+
+// ---------- Toast / Dialog ----------
+function toast(message, kind = "") {
+  const el = h("div", { class: "toast " + kind, text: message });
+  $("#toasts").append(el);
+  setTimeout(() => el.remove(), kind === "error" ? 6000 : 3200);
+}
+function modal({ title, content, actions = [], wide = false, onClose }) {
+  const dlg = h("dialog", { class: "modal" + (wide ? " wide" : "") });
+  dlg.append(
+    h("header", {}, h("h3", { text: title }), h("button", { class: "icon-btn", "aria-label": "關閉", onclick: () => dlg.close() }, "✕")),
+    h("div", { class: "modal-body" }, content));
+  if (actions.length) dlg.append(h("footer", {}, actions.map((a) => h("button", { class: "btn " + (a.kind || ""), onclick: () => a.onClick(dlg) }, a.label))));
+  dlg.addEventListener("close", () => { dlg.remove(); if (onClose) onClose(); });
+  dlg.addEventListener("click", (e) => { if (e.target === dlg) dlg.close(); });
+  document.body.append(dlg);
+  dlg.showModal();
+  return dlg;
+}
+function confirmBox(message, { title = "請確認", okLabel = "確定", danger = false } = {}) {
+  return new Promise((resolve) => {
+    let answer = false;
+    modal({
+      title, content: h("p", { text: message }),
+      actions: [
+        { label: "取消", onClick: (d) => d.close() },
+        { label: okLabel, kind: danger ? "danger solid" : "primary", onClick: (d) => { answer = true; d.close(); } },
+      ],
+      onClose: () => resolve(answer),
+    });
+  });
+}
+function askPassword(message) {
+  return new Promise((resolve) => {
+    let answer = null;
+    const input = h("input", { type: "password", autocomplete: "current-password", "aria-label": "管理員密碼" });
+    const submit = (d) => { answer = input.value; d.close(); };
+    const dlg = modal({
+      title: "請輸入管理員密碼", content: [h("p", { text: message }), input],
+      actions: [{ label: "取消", onClick: (d) => d.close() }, { label: "確認", kind: "primary", onClick: submit }],
+      onClose: () => resolve(answer),
+    });
+    // preventDefault：避免同一次按鍵在對話框關閉、焦點回到原按鈕後，又被當成按下該按鈕
+    input.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); submit(dlg); } });
+    input.focus();
+  });
+}
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); toast("已複製", "ok"); }
+  catch { toast("瀏覽器不允許自動複製，請手動選取文字", "error"); }
+}
+
+// ---------- Bot 清單（各頁共用）----------
+async function loadBots() {
+  const r = await api("GET", "/bots");
+  state.bots = r.bots; state.serverUrl = r.serverUrl;
+  return r;
+}
+const botList = () => state.bots || [];
+const botName = (id) => (botList().find((b) => b.botId === id) || {}).name || id || "—";
+// 記住使用者上次在哪個 Bot；需要「一定要選 Bot」的頁面在沒有記錄時用第一個
+function pickBot(required) {
+  if (botList().some((b) => b.botId === state.botSel)) return state.botSel;
+  return required ? (botList()[0] || {}).botId || "" : "";
+}
+function botSelect({ all = false, label = "Bot", onchange } = {}) {
+  const sel = h("select", { "aria-label": label },
+    all ? h("option", { value: "", text: "全部 Bot" }) : null,
+    botList().map((b) => h("option", { value: b.botId, text: b.name + (b.enabled ? "" : "（已停用）") })));
+  sel.value = pickBot(!all);
+  sel.addEventListener("change", () => { state.botSel = sel.value; if (onchange) onchange(sel.value); });
+  return sel;
+}
+const noBotNotice = () => h("div", { class: "card empty", text: "還沒有 Bot。請先到「Bot 與邀請碼」建立一個 Bot。" });
+const botQuery = (botId) => (botId ? `&botId=${enc(botId)}` : "");
+
+/* ---------- QR Code 產生器（byte 模式、錯誤更正 M、版本 1～10；不依賴任何外部套件） ---------- */
+const QR = (() => {
+  const ECC_PER_BLOCK = [-1, 10, 16, 26, 18, 24, 16, 18, 22, 22, 26];
+  const NUM_BLOCKS = [-1, 1, 1, 1, 2, 2, 4, 4, 4, 5, 5];
+  const MAX_VERSION = 10;
+  const rawModules = (ver) => {
+    let r = (16 * ver + 128) * ver + 64;
+    if (ver >= 2) { const n = Math.floor(ver / 7) + 2; r -= (25 * n - 10) * n - 55; if (ver >= 7) r -= 36; }
+    return r;
+  };
+  const dataCodewords = (ver) => Math.floor(rawModules(ver) / 8) - ECC_PER_BLOCK[ver] * NUM_BLOCKS[ver];
+  const gfMul = (x, y) => { let z = 0; for (let i = 7; i >= 0; i--) { z = (z << 1) ^ ((z >>> 7) * 0x11D); z ^= ((y >>> i) & 1) * x; } return z; };
+  function rsDivisor(degree) {
+    const result = new Array(degree).fill(0); result[degree - 1] = 1;
+    let root = 1;
+    for (let i = 0; i < degree; i++) {
+      for (let j = 0; j < degree; j++) { result[j] = gfMul(result[j], root); if (j + 1 < degree) result[j] ^= result[j + 1]; }
+      root = gfMul(root, 0x02);
+    }
+    return result;
+  }
+  function rsRemainder(data, divisor) {
+    const result = new Array(divisor.length).fill(0);
+    for (const b of data) {
+      const factor = b ^ result.shift(); result.push(0);
+      divisor.forEach((coef, i) => { result[i] ^= gfMul(coef, factor); });
+    }
+    return result;
+  }
+  function interleave(data, ver) {
+    const nb = NUM_BLOCKS[ver], eccLen = ECC_PER_BLOCK[ver], raw = Math.floor(rawModules(ver) / 8);
+    const shortBlocks = nb - (raw % nb), shortLen = Math.floor(raw / nb);
+    const blocks = [], div = rsDivisor(eccLen);
+    for (let i = 0, k = 0; i < nb; i++) {
+      const dat = data.slice(k, k + shortLen - eccLen + (i < shortBlocks ? 0 : 1)); k += dat.length;
+      const ecc = rsRemainder(dat, div);
+      if (i < shortBlocks) dat.push(0);
+      blocks.push(dat.concat(ecc));
+    }
+    const out = [];
+    for (let i = 0; i < blocks[0].length; i++) blocks.forEach((blk, j) => { if (i !== shortLen - eccLen || j >= shortBlocks) out.push(blk[i]); });
+    return out;
+  }
+  function encode(text) {
+    const bytes = Array.from(new TextEncoder().encode(text));
+    let ver = 1;
+    while (ver <= MAX_VERSION && (4 + (ver < 10 ? 8 : 16) + bytes.length * 8) > dataCodewords(ver) * 8) ver++;
+    if (ver > MAX_VERSION) throw new Error("內容太長，無法產生 QR Code");
+    const bits = [];
+    const push = (val, len) => { for (let i = len - 1; i >= 0; i--) bits.push((val >>> i) & 1); };
+    push(0b0100, 4); push(bytes.length, ver < 10 ? 8 : 16); bytes.forEach((b) => push(b, 8));
+    const cap = dataCodewords(ver) * 8;
+    push(0, Math.min(4, cap - bits.length));
+    push(0, (8 - (bits.length % 8)) % 8);
+    for (let pad = 0xEC; bits.length < cap; pad ^= 0xEC ^ 0x11) push(pad, 8);
+    const data = [];
+    for (let i = 0; i < bits.length; i += 8) data.push(parseInt(bits.slice(i, i + 8).join(""), 2));
+    const codewords = interleave(data, ver);
+
+    const size = ver * 4 + 17;
+    const mod = Array.from({ length: size }, () => new Array(size).fill(false));
+    const fn = Array.from({ length: size }, () => new Array(size).fill(false));
+    const setFn = (x, y, dark) => { mod[y][x] = dark; fn[y][x] = true; };
+    const bit = (v, i) => ((v >>> i) & 1) !== 0;
+    for (let i = 0; i < size; i++) { setFn(6, i, i % 2 === 0); setFn(i, 6, i % 2 === 0); }
+    const finder = (cx, cy) => {
+      for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++) {
+        const d = Math.max(Math.abs(dx), Math.abs(dy)), x = cx + dx, y = cy + dy;
+        if (x >= 0 && x < size && y >= 0 && y < size) setFn(x, y, d !== 2 && d !== 4);
+      }
+    };
+    finder(3, 3); finder(size - 4, 3); finder(3, size - 4);
+    if (ver > 1) {
+      const n = Math.floor(ver / 7) + 2, step = Math.ceil((ver * 4 + 4) / (n * 2 - 2)) * 2;
+      const pos = [6];
+      for (let p = size - 7; pos.length < n; p -= step) pos.splice(1, 0, p);
+      for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+        if ((i === 0 && j === 0) || (i === 0 && j === n - 1) || (i === n - 1 && j === 0)) continue;
+        for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) setFn(pos[i] + dx, pos[j] + dy, Math.max(Math.abs(dx), Math.abs(dy)) !== 1);
+      }
+    }
+    const formatBits = (mask) => {
+      const d = (0 << 3) | mask;  // 錯誤更正等級 M 的格式位元為 00
+      let rem = d;
+      for (let i = 0; i < 10; i++) rem = (rem << 1) ^ ((rem >>> 9) * 0x537);
+      const bits15 = ((d << 10) | rem) ^ 0x5412;
+      for (let i = 0; i <= 5; i++) setFn(8, i, bit(bits15, i));
+      setFn(8, 7, bit(bits15, 6)); setFn(8, 8, bit(bits15, 7)); setFn(7, 8, bit(bits15, 8));
+      for (let i = 9; i < 15; i++) setFn(14 - i, 8, bit(bits15, i));
+      for (let i = 0; i < 8; i++) setFn(size - 1 - i, 8, bit(bits15, i));
+      for (let i = 8; i < 15; i++) setFn(8, size - 15 + i, bit(bits15, i));
+      setFn(8, size - 8, true);
+    };
+    formatBits(0);
+    if (ver >= 7) {
+      let rem = ver;
+      for (let i = 0; i < 12; i++) rem = (rem << 1) ^ ((rem >>> 11) * 0x1F25);
+      const vb = (ver << 12) | rem;
+      for (let i = 0; i < 18; i++) { const a = size - 11 + (i % 3), b = Math.floor(i / 3); setFn(a, b, bit(vb, i)); setFn(b, a, bit(vb, i)); }
+    }
+    let k = 0;
+    for (let right = size - 1; right >= 1; right -= 2) {
+      if (right === 6) right = 5;
+      for (let vert = 0; vert < size; vert++) for (let j = 0; j < 2; j++) {
+        const x = right - j, upward = ((right + 1) & 2) === 0, y = upward ? size - 1 - vert : vert;
+        if (!fn[y][x] && k < codewords.length * 8) { mod[y][x] = bit(codewords[k >>> 3], 7 - (k & 7)); k++; }
+      }
+    }
+    const MASKS = [
+      (x, y) => (x + y) % 2 === 0, (x, y) => y % 2 === 0, (x, y) => x % 3 === 0, (x, y) => (x + y) % 3 === 0,
+      (x, y) => (Math.floor(x / 3) + Math.floor(y / 2)) % 2 === 0, (x, y) => ((x * y) % 2) + ((x * y) % 3) === 0,
+      (x, y) => (((x * y) % 2) + ((x * y) % 3)) % 2 === 0, (x, y) => (((x + y) % 2) + ((x * y) % 3)) % 2 === 0,
+    ];
+    const applyMask = (m) => { for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) if (!fn[y][x] && MASKS[m](x, y)) mod[y][x] = !mod[y][x]; };
+    const penalty = () => {
+      let p = 0;
+      for (let pass = 0; pass < 2; pass++) for (let a = 0; a < size; a++) {
+        let run = 1;
+        for (let b = 1; b < size; b++) {
+          const cur = pass ? mod[b][a] : mod[a][b], prev = pass ? mod[b - 1][a] : mod[a][b - 1];
+          if (cur === prev) { run++; if (run === 5) p += 3; else if (run > 5) p++; } else run = 1;
+        }
+      }
+      let dark = 0;
+      for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+        if (mod[y][x]) dark++;
+        if (x + 1 < size && y + 1 < size && mod[y][x] === mod[y][x + 1] && mod[y][x] === mod[y + 1][x] && mod[y][x] === mod[y + 1][x + 1]) p += 3;
+      }
+      p += Math.floor(Math.abs(dark * 20 - size * size * 10) / (size * size)) * 10;
+      return p;
+    };
+    let best = 0, bestP = Infinity;
+    for (let m = 0; m < 8; m++) {
+      applyMask(m); formatBits(m);
+      const p = penalty();
+      if (p < bestP) { best = m; bestP = p; }
+      applyMask(m);
+    }
+    applyMask(best); formatBits(best);
+    return { size, modules: mod, version: ver };
+  }
+  return { encode };
+})();
+
+// ---------- API ----------
+class ApiError extends Error { constructor(msg, status, data) { super(msg); this.status = status; this.data = data; } }
+async function api(method, path, body, { noAuthRedirect = false } = {}) {
+  const headers = {};
+  let payload;
+  if (body instanceof Blob) { payload = body; headers["Content-Type"] = body.type; }
+  else if (body !== undefined) { payload = JSON.stringify(body); headers["Content-Type"] = "application/json"; }
+  if (method !== "GET") headers["X-CSRF-Token"] = state.csrf || "";
+  let res;
+  try { res = await fetch("/admin/api" + path, { method, headers, body: payload, credentials: "same-origin" }); }
+  catch { throw new ApiError("無法連線到伺服器", 0); }
+  let data = null;
+  try { data = await res.json(); } catch { /* 非 JSON */ }
+  if (res.status === 401 && !noAuthRedirect) {
+    if (state.csrf) showLogin("登入已過期，請重新登入");  // 已經主動登出時不要再覆蓋登入畫面
+    throw new ApiError("未登入", 401);
+  }
+  if (!res.ok) throw new ApiError((data && data.error) || "發生錯誤（" + res.status + "）", res.status, data);
+  return data;
+}
+const fail = (e) => { if (e.status !== 401) toast(e.message, "error"); };
+
+// ---------- 登入 ----------
+function showLogin(message = "") {
+  stopTimer();
+  state.csrf = null;
+  document.querySelectorAll("dialog").forEach((d) => d.close());
+  const root = $("#root");
+  const input = h("input", { type: "password", autocomplete: "current-password", placeholder: "管理員密碼", "aria-label": "管理員密碼" });
+  const err = h("div", { class: "error-text", text: message, role: "alert" });
+  const btn = h("button", { class: "btn primary", type: "submit" }, "登入");
+  const form = h("form", { class: "stack", onsubmit: async (e) => {
+    e.preventDefault();
+    btn.disabled = true; err.textContent = "";
+    try {
+      const r = await api("POST", "/login", { password: input.value }, { noAuthRedirect: true });
+      state.csrf = r.csrf;
+      showApp();
+    } catch (ex) { err.textContent = ex.message; input.select(); }
+    btn.disabled = false;
+  } }, input, err, btn);
+  root.replaceChildren(h("div", { class: "login-wrap" }, h("div", { class: "card login" },
+    h("div", { class: "brand" }, h("div", { class: "logo", text: "L" }), "LocalBot 管理後台"),
+    h("p", { class: "muted", text: "請輸入管理員密碼。密碼在伺服器第一次啟動時顯示，也可在金鑰檔或環境變數 LOCALBOT_ADMIN_PASSWORD 設定。" }),
+    form)));
+  input.focus();
+}
+
+// ---------- 主畫面 ----------
+const TABS = [
+  ["dashboard", "儀表板", viewDashboard],
+  ["bots", "Bot 與邀請碼", viewBots],
+  ["users", "使用者", viewUsers],
+  ["messages", "訊息紀錄", viewMessages],
+  ["send", "發送訊息", viewSend],
+  ["richmenu", "Rich Menu", viewRichMenu],
+  ["schedules", "排程推播", viewSchedules],
+  ["webhooks", "Webhook 日誌", viewWebhookLog],
+  ["settings", "設定", viewSettings],
+];
+function showApp() {
+  const nav = h("nav", { class: "nav", "aria-label": "主選單" }, TABS.map(([id, label]) =>
+    h("button", { dataset: { tab: id }, onclick: () => { location.hash = id; } }, label)));
+  const logout = h("button", { class: "btn small", onclick: async () => {
+    try { await api("POST", "/logout"); } catch { /* 已登出 */ }
+    showLogin();
+  } }, "登出");
+  $("#root").replaceChildren(h("div", { class: "shell" },
+    h("aside", { class: "side" }, h("div", { class: "brand" }, h("div", { class: "logo", text: "L" }), "LocalBot"), nav, h("div", { class: "foot" }, logout)),
+    h("main", { id: "view" })));
+  route();
+}
+window.addEventListener("hashchange", () => { if (state.csrf) route(); });
+function route() {
+  const id = (location.hash || "#dashboard").slice(1);
+  const tab = TABS.find((t) => t[0] === id) || TABS[0];
+  state.tab = tab[0];
+  stopTimer();
+  state.viewToken++;
+  document.querySelectorAll(".nav button").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab[0]));
+  const view = $("#view");
+  view.replaceChildren(h("div", { class: "empty", text: "載入中…" }));
+  const myToken = state.viewToken;
+  loadBots().then(() => (stale(myToken) ? null : tab[2](view, myToken))).catch(fail);
+}
+const stale = (token) => token !== state.viewToken;
+function stopTimer() { if (state.timer) { clearInterval(state.timer); state.timer = null; } }
+const pageHead = (title, ...extra) => h("div", { class: "page-head" }, h("h2", { text: title }), h("div", { class: "grow" }), extra);
+
+// ============================================================
+// 儀表板
+// ============================================================
+function statCard(label, value, sub) {
+  return h("div", { class: "card stat" }, h("div", { class: "label", text: label }), h("div", { class: "value", text: value }), sub ? h("div", { class: "sub", text: sub }) : null);
+}
+function dailyChart(daily) {
+  const W = 640, H = 210, left = 34, base = 168, top = 14;
+  const max = Math.max(1, ...daily.flatMap((d) => [d.incoming, d.outgoing]));
+  const step = (W - left - 8) / daily.length, bw = Math.min(20, step / 2 - 4);
+  const root = svg("svg", { class: "chart", viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "最近 7 天訊息量" });
+  for (const frac of [0, 0.5, 1]) {
+    const y = base - (base - top) * frac;
+    root.append(svg("line", { class: "axis", x1: left, x2: W - 4, y1: y, y2: y }));
+    const t = svg("text", { x: left - 6, y: y + 4, "text-anchor": "end" }); t.textContent = Math.round(max * frac); root.append(t);
+  }
+  daily.forEach((d, i) => {
+    const cx = left + step * i + step / 2;
+    [["bar-in", d.incoming, -bw - 1, "收到"], ["bar-out", d.outgoing, 1, "送出"]].forEach(([cls, v, dx, name]) => {
+      const bh = (base - top) * (v / max);
+      const r = svg("rect", { class: cls, x: cx + dx, y: base - bh, width: bw, height: Math.max(bh, v ? 1 : 0), rx: 3 });
+      const tip = svg("title"); tip.textContent = `${d.date} ${name} ${v} 則`; r.append(tip); root.append(r);
+    });
+    const lbl = svg("text", { x: cx, y: base + 16, "text-anchor": "middle" }); lbl.textContent = d.date.slice(5); root.append(lbl);
+  });
+  return root;
+}
+async function viewDashboard(view, token) {
+  const box = h("div");
+  const filter = botSelect({ all: true, onchange: () => load(false).catch(fail) });
+  view.replaceChildren(pageHead("儀表板", filter), box);
+  const results = {};  // botId → 最近一次 webhook 測試結果
+  const whBox = h("div", { class: "stack" });
+  function resultBadge(b) {
+    const r = results[b.botId];
+    if (!b.enabled) return h("span", { class: "badge" }, "已停用");
+    if (!r) return h("span", { class: "muted", text: "尚未測試" });
+    if (r === "testing") return h("span", { class: "muted", text: "測試中…" });
+    return h("span", { class: "badge " + (r.ok ? "ok" : "bad"), title: r.error || "" }, h("i", { class: "dot" }),
+      r.ok ? `正常（HTTP ${r.status}，${r.ms} ms）` : (r.status ? `Bot 回應 HTTP ${r.status}` : "連不上"));
+  }
+  function drawWebhooks() {
+    if (!botList().length) { whBox.replaceChildren(h("div", { class: "muted", text: "還沒有 Bot" })); return; }
+    whBox.replaceChildren(h("div", { class: "table-wrap" }, h("table", {},
+      h("thead", {}, h("tr", {}, ["Bot", "Webhook", "狀態", ""].map((t) => h("th", { text: t })))),
+      h("tbody", {}, botList().map((b) => h("tr", {},
+        h("td", {}, h("div", { class: "name", text: b.name })),
+        h("td", { class: "mono", text: b.webhookUrl }),
+        h("td", {}, resultBadge(b)),
+        h("td", { class: "actions" }, h("button", { class: "btn small", disabled: !b.enabled, onclick: () => testBot(b) }, "測試連線"))))))));
+  }
+  async function testBot(b) {
+    results[b.botId] = "testing"; drawWebhooks();
+    try { results[b.botId] = await api("POST", `/bots/${enc(b.botId)}/webhook/test`); }
+    catch (e) { results[b.botId] = { ok: false, status: null, error: e.message }; }
+    drawWebhooks();
+  }
+  async function load(first) {
+    const q = botQuery(filter.value);
+    const [s, m] = await Promise.all([api("GET", "/stats?x=1" + q), api("GET", "/messages?limit=8" + q), loadBots()]);
+    if (stale(token)) return;
+    box.replaceChildren(
+      h("div", { class: "grid stats" },
+        statCard(filter.value ? "好友" : "使用者", num(s.users), s.blockedUsers ? `其中 ${s.blockedUsers} 位已封鎖` : "沒有封鎖"),
+        statCard("線上", num(s.online), "目前連線中的 App"),
+        statCard("24 小時訊息", num(s.messagesLast24h), `累計收到 ${num(s.messagesIncoming)}／送出 ${num(s.messagesOutgoing)}`),
+        statCard("離線佇列", num(s.offlineQueue), "等使用者上線後送達"),
+        statCard("Rich Menu", num(s.richMenus), filter.value ? (s.defaultRichMenuId ? "已設定預設" : "未設定預設") : "全部 Bot 合計"),
+        statCard("Bot", num(s.bots), "已建立的 Bot 數"),
+        statCard("伺服器運作", fmtUptime(s.uptimeSeconds), "自上次啟動")),
+      h("div", { class: "grid two" },
+        h("div", { class: "card" }, h("h3", { text: "最近 7 天訊息量" }), dailyChart(s.daily),
+          h("div", { class: "legend" }, h("span", {}, h("i", { class: "in" }), "收到（使用者）"), h("span", {}, h("i", { class: "out" }), "送出（Bot）"))),
+        h("div", { class: "card stack" }, h("h3", { text: "Bot Webhook" }), whBox)),
+      h("div", { class: "grid two" },
+        h("div", { class: "card stack" }, h("h3", { text: "Webhook 轉送" }),
+          h("div", { class: "row" },
+            h("span", { class: "badge " + (s.webhookRetrying ? "warn" : "") }, `等待重試 ${s.webhookRetrying}`),
+            h("span", { class: "badge " + (s.webhookDead ? "bad" : "") }, `已放棄 ${s.webhookDead}`)),
+          h("div", {}, h("button", { class: "btn small", onclick: () => { location.hash = "webhooks"; } }, "查看日誌"))),
+        h("div", { class: "card stack" }, h("h3", { text: "排程推播" }),
+          h("div", { class: "muted", text: s.schedulesActive ? `${s.schedulesActive} 個運作中，下次執行 ${fmtTime(s.nextScheduleAt)}` : "沒有運作中的排程" }),
+          h("div", {}, h("button", { class: "btn small", onclick: () => { location.hash = "schedules"; } }, "管理排程")))),
+      h("div", { class: "card" }, h("h3", { text: "最新訊息" }), messageTable(m.messages, { compact: true })));
+    drawWebhooks();
+    if (first) botList().filter((b) => b.enabled).forEach((b) => testBot(b));
+  }
+  await load(true);
+  state.timer = setInterval(() => load(false).catch(() => {}), 15000);
+}
+
+// ============================================================
+// 訊息表格（儀表板、訊息紀錄共用）
+// ============================================================
+function dirBadge(dir) { return h("span", { class: "badge " + (dir === "incoming" ? "brand" : "") }, dir === "incoming" ? "使用者" : "Bot"); }
+function messageTable(messages, { compact = false } = {}) {
+  if (!messages.length) return h("div", { class: "empty", text: "沒有符合的訊息" });
+  const head = ["時間", "Bot", "使用者", "方向", "內容"];
+  const rows = messages.map((m) => h("tr", { class: "clickable", onclick: () => showMessage(m) },
+    h("td", { class: "mono", text: fmtTime(m.createdAt) }),
+    h("td", { text: m.botName || m.botId || "—" }),
+    h("td", {}, h("div", { class: "name", text: m.displayName || "—" }), h("div", { class: "mono muted", text: shortId(m.userId) })),
+    h("td", {}, dirBadge(m.direction)),
+    h("td", {}, h("div", { class: "summary", text: m.summary || "" }))));
+  return h("div", { class: compact ? "scroll-x" : "table-wrap" }, h("table", {}, h("thead", {}, h("tr", {}, head.map((t) => h("th", { text: t })))), h("tbody", {}, rows)));
+}
+function showMessage(m) {
+  modal({
+    title: "訊息內容", wide: true,
+    content: [
+      h("dl", { class: "kv" },
+        h("dt", { text: "時間" }), h("dd", { text: fmtTime(m.createdAt) }),
+        h("dt", { text: "Bot" }), h("dd", { text: `${m.botName || "—"}（${m.botId || "—"}）` }),
+        h("dt", { text: "使用者" }), h("dd", { text: `${m.displayName || "—"}（${m.userId}）` }),
+        h("dt", { text: "方向／類型" }), h("dd", { text: `${m.direction === "incoming" ? "使用者 → Bot" : "Bot → 使用者"}／${m.type}` }),
+        h("dt", { text: "訊息 ID" }), h("dd", { class: "mono", text: m.messageId })),
+      m.thumb ? h("img", { class: "thumb", src: m.thumb, alt: "圖片預覽" }) : null,
+      h("pre", { class: "json", text: JSON.stringify(m.content, null, 2) }),
+    ],
+  });
+}
+
+// ============================================================
+// 使用者
+// ============================================================
+function userStatus(u) {
+  return u.online ? h("span", { class: "badge ok" }, h("i", { class: "dot" }), "線上") : h("span", { class: "badge" }, "離線");
+}
+function keyBadge(status) {
+  if (status === "active") return h("span", { class: "badge ok" }, "有效");
+  if (status === "revoked") return h("span", { class: "badge bad", title: "已撤銷，需用邀請碼重新加入" }, "已撤銷");
+  return h("span", { class: "badge warn", title: "舊版升級的使用者：需用邀請碼重新加入才會取得金鑰" }, "未發");
+}
+const KEY_HINT = {
+  active: "這位使用者／裝置持有自己的金鑰，可隨時撤銷，不影響其他人。",
+  revoked: "金鑰已撤銷：這個裝置已無法連線，需要管理員給的邀請碼重新加入。",
+  none: "還沒有金鑰（從舊版升級的使用者）：App 更新後用邀請碼加入即可取得。",
+};
+function botBadges(bots) {
+  if (!bots || !bots.length) return h("span", { class: "muted", text: "尚未加入任何 Bot" });
+  return h("div", { class: "row" }, bots.map((b) => h("span", { class: "badge " + (b.blocked ? "bad" : "brand") }, b.botName + (b.blocked ? "（封鎖）" : ""))));
+}
+async function viewUsers(view, token) {
+  let q = "", users = [], total = 0, timer = null;
+  const search = h("input", { type: "search", placeholder: "搜尋名稱或使用者 ID", "aria-label": "搜尋使用者" });
+  const botSel = botSelect({ all: true, onchange: () => load(true).catch(fail) });
+  const count = h("span", { class: "muted" });
+  const holder = h("div");
+  const more = h("button", { class: "btn", onclick: () => load(false) }, "載入更多");
+  view.replaceChildren(pageHead("使用者", botSel, h("div", { class: "row" }, search, count)), holder, h("div", { class: "row" }, more));
+  search.parentElement.classList.add("grow");
+  async function load(reset) {
+    if (reset) users = [];
+    const r = await api("GET", `/users?limit=50&offset=${users.length}&q=${enc(q)}${botQuery(botSel.value)}`);
+    if (stale(token)) return;
+    users = users.concat(r.users); total = r.total;
+    count.textContent = `共 ${num(total)} 位`;
+    more.classList.toggle("hidden", users.length >= total);
+    draw();
+  }
+  function draw() {
+    if (!users.length) { holder.replaceChildren(h("div", { class: "card empty", text: q || botSel.value ? "找不到符合的使用者" : "還沒有人加入。到「Bot 與邀請碼」產生邀請碼，讓手機 App 加入。" })); return; }
+    holder.replaceChildren(h("div", { class: "table-wrap" }, h("table", {},
+      h("thead", {}, h("tr", {}, ["使用者", "加入的 Bot", "金鑰", "狀態", "訊息數", "最近上線", ""].map((t) => h("th", { text: t })))),
+      h("tbody", {}, users.map((u) => h("tr", { class: "clickable", onclick: () => openUser(u.userId, () => load(true)) },
+        h("td", {}, h("div", { class: "name", text: u.displayName || "（未命名）" }), h("div", { class: "mono muted", text: shortId(u.userId, 22) })),
+        h("td", {}, botBadges(u.bots)),
+        h("td", {}, keyBadge(u.keyStatus)),
+        h("td", {}, userStatus(u)),
+        h("td", { text: num(u.messageCount) }),
+        h("td", { title: fmtTime(u.lastSeenAt), text: ago(u.lastSeenAt) }),
+        h("td", { class: "actions" }, h("button", { class: "btn small", onclick: (e) => { e.stopPropagation(); openUser(u.userId, () => load(true)); } }, "管理"))))))));
+  }
+  search.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(() => { q = search.value.trim(); load(true).catch(fail); }, 300); });
+  await load(true);
+}
+
+function bubble(m) {
+  return h("div", { class: "bubble " + (m.direction === "outgoing" ? "out" : "") },
+    m.thumb ? h("img", { class: "thumb", src: m.thumb, alt: "圖片" }) : null,
+    h("div", { text: m.summary }),
+    h("div", { class: "meta", text: fmtTime(m.createdAt) + (m.direction === "outgoing" ? "・Bot" : "") }));
+}
+async function openUser(uid, onChange) {
+  const u = await api("GET", `/users/${enc(uid)}`).catch((e) => { fail(e); return null; });
+  if (!u) return;
+  const menuMap = {};
+  await Promise.all(u.bots.map((m) => api("GET", `/richmenus?botId=${enc(m.botId)}`)
+    .then((r) => { menuMap[m.botId] = r.richmenus.filter((x) => x.hasImage); }).catch(() => { menuMap[m.botId] = []; })));
+  let changed = false, before = null, dlg = null;
+  const name = h("input", { type: "text", value: u.displayName, maxLength: 64, "aria-label": "顯示名稱" });
+  const act = async (fn, okMsg) => { try { await fn(); changed = true; if (okMsg) toast(okMsg, "ok"); return true; } catch (e) { fail(e); return false; } };
+  const reopen = () => { dlg.close(); openUser(uid, onChange); };
+
+  const botPanel = (m) => {
+    const menus = menuMap[m.botId] || [];
+    const sel = h("select", { "aria-label": `${m.botName} 的 Rich Menu` }, h("option", { value: "", text: "（不指定，使用預設）" }),
+      menus.map((x) => h("option", { value: x.richMenuId, text: x.name + (x.isDefault ? "（預設）" : "") })));
+    sel.value = m.richMenuId || "";
+    return h("div", { class: "card stack" },
+      h("div", { class: "row" }, h("strong", { text: m.botName }), m.blocked ? h("span", { class: "badge bad" }, "已封鎖") : null, h("div", { class: "grow" }),
+        h("button", { class: "btn small" + (m.blocked ? "" : " danger"), onclick: async () => {
+          if (!m.blocked && !(await confirmBox(`封鎖後，這位使用者收不到「${m.botName}」的訊息，也不能對它發話（Bot 會收到 unfollow 事件）。確定封鎖？`, { okLabel: "封鎖", danger: true }))) return;
+          if (await act(() => api("PATCH", `/users/${enc(uid)}`, { botId: m.botId, blocked: !m.blocked }), m.blocked ? "已解除封鎖" : "已封鎖")) reopen();
+        } }, m.blocked ? "解除封鎖" : "封鎖"),
+        h("button", { class: "btn small danger", onclick: async () => {
+          if (!(await confirmBox(`把這位使用者從「${m.botName}」移除？會刪除他和這個 Bot 的好友關係與對話紀錄（Bot 會收到 unfollow 事件），不影響其他 Bot。`, { title: "從 Bot 移除", okLabel: "移除", danger: true }))) return;
+          if (await act(() => api("DELETE", `/users/${enc(uid)}/bots/${enc(m.botId)}`), "已移除")) reopen();
+        } }, "移除")),
+      h("div", { class: "row" }, h("div", { class: "grow" }, sel),
+        h("button", { class: "btn small", onclick: () => act(async () => {
+          if (sel.value) await api("POST", `/users/${enc(uid)}/richmenu`, { botId: m.botId, richMenuId: sel.value });
+          else await api("DELETE", `/users/${enc(uid)}/richmenu?botId=${enc(m.botId)}`);
+        }, "已更新 Rich Menu") }, "套用 Rich Menu")),
+      menus.length ? null : h("span", { class: "hint muted", text: "這個 Bot 還沒有已上傳圖片的 Rich Menu" }));
+  };
+
+  // 對話：選擇要看／要以哪個 Bot 的身分傳送
+  const convBots = u.bots.filter((m) => botList().some((b) => b.botId === m.botId));
+  const convSel = h("select", { "aria-label": "對話的 Bot" }, convBots.map((m) => h("option", { value: m.botId, text: m.botName })));
+  if (convBots.some((m) => m.botId === state.botSel)) convSel.value = state.botSel;
+  const conv = h("div", { class: "conv" });
+  const older = h("button", { class: "btn small hidden" }, "載入更早的訊息");
+  const text = h("textarea", { "aria-label": "訊息內容", maxLength: 5000 });
+  const curBot = () => convBots.find((m) => m.botId === convSel.value);
+  function syncText() {
+    const m = curBot();
+    text.disabled = !m || m.blocked;
+    text.placeholder = !m ? "這位使用者還沒有加入任何 Bot" : m.blocked ? "這位使用者已封鎖這個 Bot，訊息不會送達" : `以「${m.botName}」的身分傳送文字訊息…`;
+  }
+  async function loadConv(reset) {
+    if (!curBot()) { conv.replaceChildren(h("div", { class: "empty", text: "尚無對話" })); return; }
+    if (reset) { before = null; conv.replaceChildren(); }
+    const r = await api("GET", `/users/${enc(uid)}/messages?limit=30&botId=${enc(convSel.value)}` + (before ? `&beforeId=${before}` : ""));
+    if (r.messages.length) before = r.messages[r.messages.length - 1].id;
+    older.classList.toggle("hidden", !r.hasMore);
+    const prevH = conv.scrollHeight;
+    conv.prepend(...r.messages.slice().reverse().map(bubble));
+    if (reset) conv.scrollTop = conv.scrollHeight; else conv.scrollTop = conv.scrollHeight - prevH;
+    if (reset && !r.messages.length) conv.replaceChildren(h("div", { class: "empty", text: "還沒有對話" }));
+  }
+  older.addEventListener("click", () => loadConv(false).catch(fail));
+  convSel.addEventListener("change", () => { syncText(); loadConv(true).catch(fail); });
+  syncText();
+
+  const actions = [];
+  if (u.keyStatus === "active") {
+    actions.push({ label: "撤銷金鑰", kind: "danger", onClick: async (d) => {
+      if (!(await confirmBox("撤銷後，這位使用者／裝置會立刻斷線、無法再連線，要用邀請碼重新加入才能繼續使用；其他使用者不受影響。確定撤銷？", { title: "撤銷金鑰", okLabel: "撤銷", danger: true }))) return;
+      if (await act(() => api("POST", `/users/${enc(uid)}/revoke`, { confirm: true }), "已撤銷金鑰")) d.close();
+    } });
+  }
+  actions.push(
+    { label: "刪除使用者", kind: "danger", onClick: async (d) => {
+      if (!(await confirmBox("會永久刪除這位使用者、他的金鑰與所有 Bot 的對話紀錄，無法復原。確定刪除？", { title: "刪除使用者", okLabel: "永久刪除", danger: true }))) return;
+      if (await act(() => api("DELETE", `/users/${enc(uid)}`), "已刪除")) d.close();
+    } },
+    { label: "傳送", kind: "primary", onClick: async () => {
+      if (!curBot() || curBot().blocked) { toast("這個 Bot 無法傳送給這位使用者", "error"); return; }
+      if (!text.value.trim()) { toast("請輸入訊息內容", "error"); return; }
+      await act(async () => { await api("POST", "/send", { botId: convSel.value, target: "user", userId: uid, text: text.value }); text.value = ""; await loadConv(true); }, "已送出");
+    } });
+
+  dlg = modal({
+    title: u.displayName || "使用者", wide: true, onClose: () => { if (changed && onChange) onChange(); },
+    content: [
+      h("dl", { class: "kv" },
+        h("dt", { text: "使用者 ID" }), h("dd", {}, h("span", { class: "mono", text: u.userId }), " ", h("button", { class: "btn small", onclick: () => copyText(u.userId) }, "複製")),
+        h("dt", { text: "狀態" }), h("dd", {}, userStatus(u)),
+        h("dt", { text: "金鑰" }), h("dd", {}, keyBadge(u.keyStatus), " ", h("span", { class: "muted", text: KEY_HINT[u.keyStatus] || "" })),
+        h("dt", { text: "註冊時間" }), h("dd", { text: fmtTime(u.createdAt) }),
+        h("dt", { text: "最近上線" }), h("dd", { text: u.lastSeenAt ? `${fmtTime(u.lastSeenAt)}（${ago(u.lastSeenAt)}）` : "—" }),
+        h("dt", { text: "訊息數" }), h("dd", { text: num(u.messageCount) })),
+      h("label", { class: "field" }, "顯示名稱", h("div", { class: "row" }, h("div", { class: "grow" }, name),
+        h("button", { class: "btn", onclick: () => act(async () => { await api("PATCH", `/users/${enc(uid)}`, { displayName: name.value }); }, "已更新名稱") }, "儲存"))),
+      h("div", { class: "stack" }, h("h3", { text: "加入的 Bot" }),
+        u.bots.length ? u.bots.map(botPanel) : h("div", { class: "muted", text: "尚未加入任何 Bot（可以用邀請碼加入）" })),
+      h("div", { class: "stack" }, h("div", { class: "row" }, h("h3", { text: "對話" }), h("div", { class: "grow" }), convBots.length ? convSel : null), older, conv),
+      h("label", { class: "field" }, "傳送訊息", text),
+    ],
+    actions,
+  });
+  loadConv(true).catch(fail);
+  return dlg;
+}
+
+// ============================================================
+// 訊息紀錄
+// ============================================================
+async function viewMessages(view, token) {
+  const f = { q: "", user: "", direction: "", type: "", botId: "" };
+  let before = null, list = [], hasMore = false, timer = null;
+  const mk = (key, ph) => h("input", { type: "search", placeholder: ph, "aria-label": ph, oninput: (e) => { f[key] = e.target.value.trim(); defer(); } });
+  const dirSel = h("select", { "aria-label": "方向", onchange: (e) => { f.direction = e.target.value; reload(); } },
+    h("option", { value: "", text: "全部方向" }), h("option", { value: "incoming", text: "使用者 → Bot" }), h("option", { value: "outgoing", text: "Bot → 使用者" }));
+  const types = ["text", "image", "video", "audio", "file", "sticker", "location", "postback", "flex", "template", "imagemap"];
+  const typeSel = h("select", { "aria-label": "類型", onchange: (e) => { f.type = e.target.value; reload(); } },
+    h("option", { value: "", text: "全部類型" }), types.map((t) => h("option", { value: t, text: t })));
+  const holder = h("div");
+  const more = h("button", { class: "btn hidden", onclick: () => load().catch(fail) }, "載入更多");
+  const botSel = botSelect({ all: true, onchange: (v) => { f.botId = v; reload(); } });
+  f.botId = botSel.value;
+  view.replaceChildren(pageHead("訊息紀錄", botSel),
+    h("div", { class: "row" }, h("div", { class: "grow" }, mk("q", "搜尋訊息內容")), h("div", { class: "grow" }, mk("user", "使用者名稱或 ID")), dirSel, typeSel),
+    holder, h("div", { class: "row" }, more));
+  function defer() { clearTimeout(timer); timer = setTimeout(() => reload(), 300); }
+  async function load() {
+    const qs = new URLSearchParams({ limit: 50 });
+    for (const [k, v] of Object.entries(f)) if (v) qs.set(k, v);
+    if (before) qs.set("beforeId", before);
+    const r = await api("GET", "/messages?" + qs);
+    if (stale(token)) return;
+    list = list.concat(r.messages); hasMore = r.hasMore;
+    if (r.messages.length) before = r.messages[r.messages.length - 1].id;
+    holder.replaceChildren(messageTable(list));
+    more.classList.toggle("hidden", !hasMore);
+  }
+  function reload() { before = null; list = []; load().catch(fail); }
+  await load();
+}
+
+// ============================================================
+// 發送訊息
+// ============================================================
+async function viewSend(view, token) {
+  if (!botList().length) { view.replaceChildren(pageHead("發送訊息"), noBotNotice()); return; }
+  const holder = h("div");
+  const botSel = botSelect({ onchange: () => build().catch(fail) });
+  view.replaceChildren(pageHead("發送訊息", botSel), holder);
+  let seq = 0;
+  async function build() {
+    const botId = botSel.value;
+    const mine = ++seq;
+    const [usersRes, stats] = await Promise.all([api("GET", `/users?limit=200&botId=${enc(botId)}`), api("GET", `/stats?x=1&botId=${enc(botId)}`)]);
+    if (stale(token) || mine !== seq || botId !== botSel.value) return;
+    const eligible = stats.users - stats.blockedUsers;
+    const members = usersRes.users.filter((u) => u.bots.some((b) => b.botId === botId && !b.blocked));
+    let target = "user";
+    const userSel = h("select", { "aria-label": "選擇使用者" }, members.map((u) =>
+      h("option", { value: u.userId, text: `${u.displayName || "（未命名）"}　${shortId(u.userId, 18)}` })));
+    const text = h("textarea", { placeholder: "輸入要傳送的文字…", maxLength: 5000, rows: 5, "aria-label": "訊息內容" });
+    const counter = h("span", { class: "muted", text: "0 / 5000" });
+    text.addEventListener("input", () => { counter.textContent = `${text.value.length} / 5000`; });
+    const userField = h("label", { class: "field" }, "收件者", userSel,
+      usersRes.total > 200 ? h("span", { class: "hint", text: "只列出最近加入的 200 位；其他人請到「使用者」頁傳送" }) : null);
+    const radio = (value, label) => h("label", { class: "row" }, h("input", { type: "radio", name: "target", value, checked: value === target, onchange: () => {
+      target = value; userField.classList.toggle("hidden", value !== "user"); } }), label);
+    const send = h("button", { class: "btn primary", onclick: async () => {
+      if (!text.value.trim()) { toast("請輸入訊息內容", "error"); return; }
+      if (target === "user" && !userSel.value) { toast("這個 Bot 沒有可傳送的使用者", "error"); return; }
+      if (target === "broadcast" && !(await confirmBox(`這則訊息會以「${botName(botId)}」的身分傳給它全部 ${eligible} 位未封鎖的好友，確定送出？`, { title: "確認廣播", okLabel: "送出" }))) return;
+      send.disabled = true;
+      try {
+        const body = target === "user" ? { botId, target, userId: userSel.value, text: text.value } : { botId, target, text: text.value, confirm: true };
+        const r = await api("POST", "/send", body);
+        toast(`已送出（${r.sent} 位）`, "ok"); text.value = ""; counter.textContent = "0 / 5000";
+      } catch (e) { fail(e); }
+      send.disabled = false;
+    } }, "送出");
+    holder.replaceChildren(h("div", { class: "card stack" },
+      h("p", { class: "muted", text: "以選定 Bot 的身分傳送文字訊息，效果等同 Bot 程式呼叫 push / broadcast。使用者離線時會排入佇列，上線後送達。" }),
+      h("div", { class: "row" }, radio("user", "單一使用者"), radio("broadcast", `這個 Bot 的全體好友（${eligible} 位）`)),
+      userField, h("label", { class: "field" }, "訊息內容", text), h("div", { class: "row" }, counter, h("div", { class: "grow" }), send)));
+  }
+  await build();
+}
+
+// ============================================================
+// Rich Menu
+// ============================================================
+const MENU_TEMPLATE = {
+  size: { width: 2500, height: 843 }, selected: true, name: "我的選單", chatBarText: "選單",
+  areas: [
+    { bounds: { x: 0, y: 0, width: 1250, height: 843 }, action: { type: "message", text: "選項一" } },
+    { bounds: { x: 1250, y: 0, width: 1250, height: 843 }, action: { type: "message", text: "選項二" } },
+  ],
+};
+function menuPreview(m, bust) {
+  const box = h("div", { class: "preview" });
+  box.style.aspectRatio = `${m.size.width} / ${m.size.height}`;
+  if (!m.hasImage) { box.append(h("div", { class: "noimg", text: "尚未上傳圖片" })); return box; }
+  box.append(h("img", { src: `/admin/api/richmenus/${enc(m.richMenuId)}/image?v=${bust}`, alt: m.name }));
+  for (const a of m.areas || []) {
+    const el = h("div", { class: "area", title: JSON.stringify(a.action) });
+    const b = a.bounds;
+    el.style.left = (b.x / m.size.width) * 100 + "%"; el.style.top = (b.y / m.size.height) * 100 + "%";
+    el.style.width = (b.width / m.size.width) * 100 + "%"; el.style.height = (b.height / m.size.height) * 100 + "%";
+    box.append(el);
+  }
+  return box;
+}
+async function viewRichMenu(view, token) {
+  if (!botList().length) { view.replaceChildren(pageHead("Rich Menu"), noBotNotice()); return; }
+  const bust = Date.now();
+  const holder = h("div");
+  const botSel = botSelect({ onchange: () => load().catch(fail) });
+  const fileInput = h("input", { type: "file", accept: "image/png,image/jpeg", class: "hidden" });
+  let uploadFor = null;
+  fileInput.addEventListener("change", async () => {
+    const file = fileInput.files[0]; fileInput.value = "";
+    if (!file || !uploadFor) return;
+    if (!["image/png", "image/jpeg"].includes(file.type)) { toast("圖片必須是 PNG 或 JPEG", "error"); return; }
+    if (file.size > 1024 * 1024) { toast("圖片需在 1 MB 以內", "error"); return; }
+    try { await api("POST", `/richmenus/${enc(uploadFor)}/image`, file); toast("圖片已上傳", "ok"); await load(); } catch (e) { fail(e); }
+  });
+  const addBtn = h("button", { class: "btn primary", onclick: createDialog }, "新增 Rich Menu");
+  view.replaceChildren(pageHead("Rich Menu", botSel, addBtn), fileInput, holder);
+
+  function createDialog() {
+    const ta = h("textarea", { rows: 16, class: "mono", "aria-label": "Rich Menu JSON" });
+    ta.value = JSON.stringify(MENU_TEMPLATE, null, 2);
+    const botId = botSel.value;
+    modal({
+      title: `新增 Rich Menu（${botName(botId)}）`, wide: true,
+      content: [h("p", { class: "muted", text: "貼上 LINE Rich Menu 物件格式的 JSON（寬 800～2500、高至少 250、寬高比至少 1.45）。建立後再上傳圖片，圖片 PNG / JPEG、1 MB 以內。" }), ta],
+      actions: [{ label: "取消", onClick: (d) => d.close() }, { label: "建立", kind: "primary", onClick: async (d) => {
+        let body; try { body = JSON.parse(ta.value); } catch { toast("JSON 格式錯誤", "error"); return; }
+        try { await api("POST", "/richmenus", { ...body, botId }); toast("已建立，請接著上傳圖片", "ok"); d.close(); await load(); } catch (e) { fail(e); }
+      } }],
+    });
+  }
+  async function bindDialog(m) {
+    const r = await api("GET", `/users?limit=200&botId=${enc(m.botId)}`);
+    const sel = h("select", { "aria-label": "使用者" }, r.users.map((u) => h("option", { value: u.userId, text: `${u.displayName || "（未命名）"}　${shortId(u.userId, 18)}` })));
+    modal({
+      title: `綁定「${m.name}」給使用者`, content: [h("p", { class: "muted", text: "個別綁定的選單優先於預設選單。" }), r.users.length ? sel : h("div", { class: "empty", text: "這個 Bot 還沒有好友" })],
+      actions: [{ label: "取消", onClick: (d) => d.close() }, { label: "綁定", kind: "primary", onClick: async (d) => {
+        if (!sel.value) return;
+        try { await api("POST", `/users/${enc(sel.value)}/richmenu`, { botId: m.botId, richMenuId: m.richMenuId }); toast("已綁定", "ok"); d.close(); await load(); } catch (e) { fail(e); }
+      } }],
+    });
+  }
+  const run = (fn, ok) => async () => { try { await fn(); if (ok) toast(ok, "ok"); await load(); } catch (e) { fail(e); } };
+  function card(m) {
+    return h("div", { class: "card stack" },
+      menuPreview(m, bust),
+      h("div", { class: "row" }, h("strong", { text: m.name }), m.isDefault ? h("span", { class: "badge brand" }, "預設") : null, m.hasImage ? null : h("span", { class: "badge warn" }, "缺圖片")),
+      h("dl", { class: "kv" },
+        h("dt", { text: "尺寸" }), h("dd", { text: `${m.size.width} × ${m.size.height}` }),
+        h("dt", { text: "選單列文字" }), h("dd", { text: m.chatBarText }),
+        h("dt", { text: "區塊數" }), h("dd", { text: String((m.areas || []).length) }),
+        h("dt", { text: "綁定人數" }), h("dd", { text: String(m.userCount) }),
+        h("dt", { text: "ID" }), h("dd", { class: "mono", text: m.richMenuId })),
+      h("div", { class: "row" },
+        h("button", { class: "btn small", onclick: () => { uploadFor = m.richMenuId; fileInput.click(); } }, m.hasImage ? "更換圖片" : "上傳圖片"),
+        m.isDefault
+          ? h("button", { class: "btn small", onclick: run(() => api("DELETE", `/richmenu-default?botId=${enc(m.botId)}`), "已取消預設") }, "取消預設")
+          : h("button", { class: "btn small", disabled: !m.hasImage, onclick: run(() => api("POST", `/richmenus/${enc(m.richMenuId)}/default`), "已設為預設") }, "設為預設"),
+        h("button", { class: "btn small", disabled: !m.hasImage, onclick: () => bindDialog(m).catch(fail) }, "綁定使用者"),
+        h("button", { class: "btn small danger", onclick: async () => {
+          if (await confirmBox(`刪除「${m.name}」？已綁定的使用者會回到預設選單。`, { title: "刪除 Rich Menu", okLabel: "刪除", danger: true })) run(() => api("DELETE", `/richmenus/${enc(m.richMenuId)}`), "已刪除")();
+        } }, "刪除")));
+  }
+  function aliasCard(r) {
+    const aliasInput = h("input", { type: "text", placeholder: "別名，例如 page-2", maxLength: 32, "aria-label": "別名" });
+    const sel = h("select", { "aria-label": "指向的 Rich Menu" }, r.richmenus.map((m) => h("option", { value: m.richMenuId, text: m.name })));
+    const nameOf = (id) => (r.richmenus.find((m) => m.richMenuId === id) || {}).name || id;
+    return h("div", { class: "card stack" },
+      h("h3", { text: "別名（richmenuswitch 切換用）" }),
+      r.aliases.length ? h("div", { class: "table-wrap" }, h("table", {}, h("thead", {}, h("tr", {}, ["別名", "指向", ""].map((t) => h("th", { text: t })))),
+        h("tbody", {}, r.aliases.map((a) => h("tr", {}, h("td", { class: "mono", text: a.aliasId }), h("td", { text: nameOf(a.richMenuId) }),
+          h("td", { class: "actions" }, h("button", { class: "btn small danger", onclick: run(() => api("DELETE", `/richmenu-aliases/${enc(a.aliasId)}?botId=${enc(r.botId)}`), "已刪除別名") }, "刪除"))))))) : h("div", { class: "muted", text: "還沒有別名" }),
+      r.richmenus.length ? h("div", { class: "row" }, h("div", { class: "grow" }, aliasInput), h("div", { class: "grow" }, sel),
+        h("button", { class: "btn", onclick: run(() => api("POST", "/richmenu-aliases", { botId: r.botId, aliasId: aliasInput.value.trim(), richMenuId: sel.value }), "已儲存別名") }, "新增／更新")) : null);
+  }
+  async function load() {
+    const r = await api("GET", `/richmenus?botId=${enc(botSel.value)}`);
+    if (stale(token) || r.botId !== botSel.value) return;
+    holder.replaceChildren(
+      r.richmenus.length ? h("div", { class: "menus" }, r.richmenus.map(card)) : h("div", { class: "card empty", text: "這個 Bot 還沒有 Rich Menu。按右上角「新增 Rich Menu」，或讓 Bot 程式（或 server/setup_richmenu.py）建立。" }),
+      h("div", { class: "stack" }, h("div"), aliasCard(r)));
+  }
+  await load();
+}
+
+// ============================================================
+// Bot 與邀請碼
+// ============================================================
+function qrSvg(text, px = 220) {
+  const { size, modules } = QR.encode(text);
+  const quiet = 4, total = size + quiet * 2;
+  let d = "";
+  modules.forEach((row, y) => row.forEach((on, x) => { if (on) d += `M${x + quiet},${y + quiet}h1v1h-1z`; }));
+  return svg("svg", { viewBox: `0 0 ${total} ${total}`, width: px, height: px, role: "img", "aria-label": "邀請 QR Code", "shape-rendering": "crispEdges" },
+    svg("rect", { width: total, height: total, fill: "#fff" }), svg("path", { d, fill: "#000" }));
+}
+const INVITE_STATUS = { active: ["ok", "有效"], used_up: ["", "已用完"], expired: ["warn", "已過期"], revoked: ["bad", "已撤銷"] };
+function inviteBadge(st) { const [cls, label] = INVITE_STATUS[st] || ["", st]; return h("span", { class: "badge " + cls }, label); }
+
+function showInvite(inv) {
+  const linkInput = h("input", { type: "text", readOnly: true, value: inv.link, class: "mono", "aria-label": "邀請連結" });
+  modal({
+    title: "邀請碼", wide: true,
+    content: [
+      h("div", { class: "big-code", text: inv.display }),
+      h("div", { class: "qr-wrap" }, h("div", { class: "qr-box" }, qrSvg(inv.link))),
+      h("p", { class: "muted", text: `Bot：${inv.botName || inv.botId}　｜　可使用 ${inv.maxUses} 次（已用 ${inv.uses} 次）　｜　${inv.expiresAt ? "有效至 " + fmtTime(inv.expiresAt) : "不限期"}${inv.label ? "　｜　" + inv.label : ""}` }),
+      h("p", { class: "muted", text: "手機 App 選「加入 Bot」，掃描這個 QR Code 或輸入邀請碼即可（QR Code 已包含伺服器網址）。每位使用者／裝置加入時會拿到自己專屬的金鑰。" }),
+      h("div", { class: "row" }, h("div", { class: "grow" }, linkInput),
+        h("button", { class: "btn", onclick: () => copyText(inv.link) }, "複製連結"),
+        h("button", { class: "btn", onclick: () => copyText(inv.display) }, "複製邀請碼")),
+    ],
+  });
+}
+
+async function viewBots(view, token) {
+  const botsBox = h("div"), invBox = h("div");
+  const invSel = botSelect({ all: true, label: "邀請碼的 Bot", onchange: () => loadInvites().catch(fail) });
+  const addBot = h("button", { class: "btn primary", onclick: createBotDialog }, "新增 Bot");
+  const newInvite = h("button", { class: "btn", onclick: () => inviteForm(pickBot(true)) }, "產生邀請碼");
+  view.replaceChildren(
+    pageHead("Bot 與邀請碼", newInvite, addBot),
+    h("p", { class: "muted", text: "每個 Bot 有自己的 Webhook、金鑰、好友與 Rich Menu。使用者用邀請碼（或 QR Code）加入 Bot，一位使用者可以加入多個 Bot。" }),
+    botsBox,
+    h("div", { class: "page-head sub" }, h("h3", { text: "邀請碼" }), h("div", { class: "grow" }), invSel),
+    invBox);
+
+  async function reload() { await Promise.all([loadBotCards(), loadInvites()]); }
+  const run = (fn, ok) => async () => { try { await fn(); if (ok) toast(ok, "ok"); await reload(); } catch (e) { fail(e); } };
+
+  async function loadBotCards() {
+    await loadBots();
+    if (stale(token)) return;
+    if (!botList().length) { botsBox.replaceChildren(h("div", { class: "card empty", text: "還沒有 Bot。按右上角「新增 Bot」建立第一個。" })); return; }
+    botsBox.replaceChildren(h("div", { class: "menus" }, botList().map(botCard)));
+  }
+  function botAvatar(b, large) {
+    const cls = "bot-avatar" + (large ? " large" : "");
+    if (b.avatarUrl) return h("img", { class: cls, src: b.avatarUrl, alt: "", loading: "lazy" });
+    return h("div", { class: cls, "aria-hidden": "true", text: (b.name || "?").slice(0, 1) });
+  }
+  function botCard(b) {
+    return h("div", { class: "card stack" },
+      h("div", { class: "row" }, botAvatar(b), h("strong", { text: b.name }), b.enabled ? h("span", { class: "badge ok" }, "啟用中") : h("span", { class: "badge" }, "已停用")),
+      b.description ? h("div", { class: "muted", text: b.description }) : null,
+      h("dl", { class: "kv" },
+        h("dt", { text: "Bot ID" }), h("dd", { class: "mono", text: b.botId }),
+        h("dt", { text: "Webhook" }), h("dd", { class: "mono", text: b.webhookUrl }),
+        h("dt", { text: "好友" }), h("dd", { text: `${num(b.memberCount)} 位${b.blockedCount ? `（${b.blockedCount} 位封鎖）` : ""}` }),
+        h("dt", { text: "有效邀請碼" }), h("dd", { text: String(b.activeInvites) })),
+      h("div", { class: "row" },
+        h("button", { class: "btn small primary", disabled: !b.enabled, onclick: () => inviteForm(b.botId) }, "產生邀請碼"),
+        h("button", { class: "btn small", onclick: () => editBot(b) }, "編輯"),
+        h("button", { class: "btn small", onclick: () => secretsDialog(b) }, "金鑰"),
+        h("button", { class: "btn small", disabled: !b.enabled, onclick: () => testWebhook(b) }, "測試 Webhook"),
+        h("button", { class: "btn small", onclick: run(() => api("PATCH", `/bots/${enc(b.botId)}`, { enabled: !b.enabled }), b.enabled ? "已停用" : "已啟用") }, b.enabled ? "停用" : "啟用"),
+        h("button", { class: "btn small danger", onclick: () => deleteBot(b) }, "刪除")));
+  }
+  async function testWebhook(b) {
+    try {
+      const r = await api("POST", `/bots/${enc(b.botId)}/webhook/test`);
+      toast(r.ok ? `Webhook 正常（HTTP ${r.status}，${r.ms} ms）` : (r.status ? `Bot 回應 HTTP ${r.status}` : `連不上：${r.error || ""}`), r.ok ? "ok" : "error");
+    } catch (e) { fail(e); }
+  }
+  function botFields(b) {
+    const name = h("input", { type: "text", maxLength: 60, value: b ? b.name : "", placeholder: "例如：客服 Bot", "aria-label": "Bot 名稱" });
+    const desc = h("input", { type: "text", maxLength: 200, value: b ? b.description : "", placeholder: "（選填）給使用者看的簡短說明", "aria-label": "說明" });
+    const url = h("input", { type: "text", maxLength: 500, value: b ? b.webhookUrl : "http://localhost:9000/callback", placeholder: "https://your-bot.example/callback", "aria-label": "Webhook URL" });
+    return { name, desc, url, nodes: [
+      h("label", { class: "field" }, "名稱", name),
+      h("label", { class: "field" }, "說明", desc),
+      h("label", { class: "field" }, "Webhook URL", url, h("span", { class: "hint", text: "平台把使用者的訊息轉送到這個網址（和 LINE 的 Webhook URL 一樣）。" })),
+    ] };
+  }
+  function createBotDialog() {
+    const f = botFields(null);
+    modal({
+      title: "新增 Bot", content: f.nodes,
+      actions: [{ label: "取消", onClick: (d) => d.close() }, { label: "建立", kind: "primary", onClick: async (d) => {
+        try {
+          const r = await api("POST", "/bots", { name: f.name.value, description: f.desc.value, webhookUrl: f.url.value });
+          d.close(); await reload();
+          modal({
+            title: "Bot 已建立", wide: true,
+            content: [
+              h("p", { text: "以下金鑰只在建立時順便顯示；之後要查看需要再輸入管理員密碼。請設定到你的 Bot 程式裡：" }),
+              h("dl", { class: "kv" }, h("dt", { text: "Bot ID" }), h("dd", { class: "mono", text: r.botId })),
+              h("div", { class: "field" }, "Channel Secret", h("code", { class: "secret-value mono", text: r.channelSecret }), h("div", {}, h("button", { class: "btn small", onclick: () => copyText(r.channelSecret) }, "複製"))),
+              h("div", { class: "field" }, "Channel Access Token", h("code", { class: "secret-value mono", text: r.channelAccessToken }), h("div", {}, h("button", { class: "btn small", onclick: () => copyText(r.channelAccessToken) }, "複製"))),
+            ],
+            actions: [{ label: "產生邀請碼", kind: "primary", onClick: (x) => { x.close(); inviteForm(r.botId); } }, { label: "關閉", onClick: (x) => x.close() }],
+          });
+        } catch (e) { fail(e); }
+      } }],
+    });
+    f.name.focus();
+  }
+  function avatarField(b) {
+    const preview = h("div");
+    const fileInput = h("input", { type: "file", accept: "image/png,image/jpeg,image/webp", class: "hidden" });
+    const removeBtn = h("button", { class: "btn small", type: "button" }, "移除");
+    let current = b;
+    const paint = () => { preview.replaceChildren(botAvatar(current, true)); removeBtn.disabled = !current.avatarUrl; };
+    fileInput.addEventListener("change", async () => {
+      const file = fileInput.files[0]; fileInput.value = "";
+      if (!file) return;
+      if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) { toast("圖片必須是 PNG、JPEG 或 WebP", "error"); return; }
+      if (file.size > 1024 * 1024) { toast("圖片需在 1 MB 以內", "error"); return; }
+      try { current = await api("POST", `/bots/${enc(b.botId)}/avatar`, file); paint(); toast("頭像已更新", "ok"); await reload(); } catch (e) { fail(e); }
+    });
+    removeBtn.addEventListener("click", async () => {
+      try { current = await api("DELETE", `/bots/${enc(b.botId)}/avatar`); paint(); toast("已移除頭像", "ok"); await reload(); } catch (e) { fail(e); }
+    });
+    paint();
+    return h("div", { class: "field" }, "頭像",
+      h("div", { class: "row" }, preview, fileInput,
+        h("button", { class: "btn small", type: "button", onclick: () => fileInput.click() }, "上傳圖片"), removeBtn),
+      h("span", { class: "hint", text: "顯示在 App 的 Bot 清單與聊天室。建議正方形，PNG / JPEG / WebP，1 MB 以內。" }));
+  }
+  function editBot(b) {
+    const f = botFields(b);
+    modal({
+      title: `編輯「${b.name}」`, content: [avatarField(b), ...f.nodes],
+      actions: [{ label: "取消", onClick: (d) => d.close() }, { label: "儲存", kind: "primary", onClick: async (d) => {
+        try { await api("PATCH", `/bots/${enc(b.botId)}`, { name: f.name.value, description: f.desc.value, webhookUrl: f.url.value }); toast("已儲存", "ok"); d.close(); await reload(); } catch (e) { fail(e); }
+      } }],
+    });
+  }
+  const SECRET_ROWS = [["CHANNEL_SECRET", "Channel Secret（平台 → Bot webhook 簽名，只給 Bot）"], ["CHANNEL_ACCESS_TOKEN", "Channel Access Token（Bot → 平台 API，只給 Bot）"]];
+  function secretsDialog(b) {
+    async function reveal(name) {
+      const pw = await askPassword(`顯示「${b.name}」的 ${name} 需要再次確認身分。`);
+      if (pw === null) return;
+      try {
+        const r = await api("POST", `/bots/${enc(b.botId)}/secrets/${name}/reveal`, { password: pw });
+        modal({ title: `${b.name}：${name}`, content: [h("code", { class: "secret-value mono", text: r.value }), h("div", { class: "row" }, h("button", { class: "btn", onclick: () => copyText(r.value) }, "複製"))] });
+      } catch (e) { fail(e); }
+    }
+    async function regenerate(name) {
+      if (!(await confirmBox(`重新產生後，「${b.name}」舊的 ${name} 會立刻失效，這個 Bot 的程式要改用新的值才能繼續運作。確定重新產生？`, { title: "重新產生金鑰", okLabel: "重新產生", danger: true }))) return;
+      const pw = await askPassword("請輸入管理員密碼以確認。");
+      if (pw === null) return;
+      try {
+        const r = await api("POST", `/bots/${enc(b.botId)}/secrets/${name}/regenerate`, { password: pw, confirm: true });
+        modal({ title: `新的 ${name}`, content: [h("p", { text: "已生效。這是新的值，請立即更新到 Bot 程式：" }), h("code", { class: "secret-value mono", text: r.value }), h("div", { class: "row" }, h("button", { class: "btn", onclick: () => copyText(r.value) }, "複製"))] });
+        await reload();
+      } catch (e) { fail(e); }
+    }
+    modal({
+      title: `「${b.name}」的金鑰`, wide: true,
+      content: [h("div", { class: "table-wrap" }, h("table", {}, h("thead", {}, h("tr", {}, ["金鑰", ""].map((t) => h("th", { text: t })))),
+        h("tbody", {}, SECRET_ROWS.map(([name, label]) => h("tr", {},
+          h("td", {}, h("div", { class: "name", text: name }), h("div", { class: "muted", text: label })),
+          h("td", { class: "actions" }, h("button", { class: "btn small", onclick: () => reveal(name) }, "顯示"), " ",
+            h("button", { class: "btn small danger", onclick: () => regenerate(name) }, "重新產生"))))))),
+        h("p", { class: "muted", text: "手機 App 不使用這兩個金鑰：每位使用者／裝置加入時由伺服器發給專屬金鑰，可在「使用者」頁單獨撤銷。" })],
+    });
+  }
+  async function deleteBot(b) {
+    if (!(await confirmBox(`刪除「${b.name}」？它的 ${b.memberCount} 位好友關係、所有對話紀錄、Rich Menu、邀請碼、排程與 Webhook 日誌都會永久刪除，Bot 程式的金鑰也會立刻失效。使用者帳號本身不會被刪除。`, { title: "刪除 Bot", okLabel: "繼續", danger: true }))) return;
+    const pw = await askPassword("這個動作無法復原，請輸入管理員密碼以確認。");
+    if (pw === null) return;
+    try { await api("DELETE", `/bots/${enc(b.botId)}`, { password: pw, confirm: true }); toast("已刪除", "ok"); await reload(); } catch (e) { fail(e); }
+  }
+
+  function inviteForm(botId) {
+    if (!botList().length) { toast("請先建立 Bot", "error"); return; }
+    const sel = h("select", { "aria-label": "Bot" }, botList().filter((b) => b.enabled).map((b) => h("option", { value: b.botId, text: b.name })));
+    if (botList().some((b) => b.botId === botId && b.enabled)) sel.value = botId;
+    const label = h("input", { type: "text", maxLength: 60, placeholder: "例如：給小明的手機（選填）", "aria-label": "備註" });
+    const uses = h("input", { type: "number", min: 1, max: 1000, value: 1, "aria-label": "可使用次數" });
+    const expiry = h("select", { "aria-label": "有效期限" }, [["1", "1 小時"], ["24", "1 天"], ["168", "7 天"], ["720", "30 天"], ["never", "不限期"]].map(([v, t]) => h("option", { value: v, text: t })));
+    expiry.value = "168";
+    modal({
+      title: "產生邀請碼",
+      content: [
+        h("label", { class: "field" }, "加入哪個 Bot", sel),
+        h("label", { class: "field" }, "備註", label),
+        h("label", { class: "field" }, "可使用次數", uses, h("span", { class: "hint", text: "1 = 只能一個人用；每位新使用者加入會用掉一次。" })),
+        h("label", { class: "field" }, "有效期限", expiry),
+      ],
+      actions: [{ label: "取消", onClick: (d) => d.close() }, { label: "產生", kind: "primary", onClick: async (d) => {
+        const body = { botId: sel.value, label: label.value, maxUses: parseInt(uses.value, 10), expiresInHours: expiry.value === "never" ? null : parseInt(expiry.value, 10) };
+        try { const inv = await api("POST", "/invites", body); d.close(); showInvite(inv); await reload(); } catch (e) { fail(e); }
+      } }],
+    });
+  }
+  async function loadInvites() {
+    const r = await api("GET", "/invites" + (invSel.value ? `?botId=${enc(invSel.value)}` : ""));
+    if (stale(token)) return;
+    if (!r.invites.length) { invBox.replaceChildren(h("div", { class: "card empty", text: "還沒有邀請碼。按右上角「產生邀請碼」。" })); return; }
+    invBox.replaceChildren(h("div", { class: "table-wrap" }, h("table", {},
+      h("thead", {}, h("tr", {}, ["邀請碼", "Bot", "備註", "使用", "到期", "狀態", ""].map((t) => h("th", { text: t })))),
+      h("tbody", {}, r.invites.map((i) => h("tr", {},
+        h("td", { class: "mono", text: i.display }),
+        h("td", { text: i.botName || i.botId }),
+        h("td", { text: i.label || "" }),
+        h("td", { text: `${i.uses} / ${i.maxUses}` }),
+        h("td", { class: "mono", text: i.expiresAt ? fmtTime(i.expiresAt) : "不限期" }),
+        h("td", {}, inviteBadge(i.status)),
+        h("td", { class: "actions" }, h("div", { class: "row end" },
+          i.status === "active" ? h("button", { class: "btn small", onclick: () => showInvite(i) }, "QR Code") : null,
+          i.status === "active" ? h("button", { class: "btn small", onclick: async () => {
+            if (await confirmBox("撤銷後，這組邀請碼不能再用來加入（已經加入的人不受影響）。", { title: "撤銷邀請碼", okLabel: "撤銷", danger: true })) run(() => api("POST", `/invites/${enc(i.code)}/revoke`), "已撤銷")();
+          } }, "撤銷") : null,
+          h("button", { class: "btn small danger", onclick: run(() => api("DELETE", `/invites/${enc(i.code)}`), "已刪除") }, "刪除")))))))));
+  }
+  await reload();
+  state.timer = setInterval(() => reload().catch(() => {}), 30000);
+}
+
+// ============================================================
+// 設定
+// ============================================================
+async function viewSettings(view, token) {
+  const s = await api("GET", "/settings");
+  if (stale(token)) return;
+  const kv = (k, v) => [h("dt", { text: k }), h("dd", { text: String(v) })];
+  const cur = h("input", { type: "password", autocomplete: "current-password", "aria-label": "目前密碼" });
+  const nw = h("input", { type: "password", autocomplete: "new-password", "aria-label": "新密碼" });
+  const nw2 = h("input", { type: "password", autocomplete: "new-password", "aria-label": "再輸入一次新密碼" });
+  const pwBtn = h("button", { class: "btn primary", disabled: s.adminPasswordSource === "env", onclick: async () => {
+    if (nw.value !== nw2.value) { toast("兩次輸入的新密碼不一致", "error"); return; }
+    try { await api("POST", "/password", { current: cur.value, new: nw.value }); toast("密碼已更新，其他裝置已登出", "ok"); cur.value = nw.value = nw2.value = ""; }
+    catch (e) { fail(e); }
+  } }, "更新密碼");
+  const delays = (s.webhookRetryDelays || []).length ? s.webhookRetryDelays.join("、") + " 秒" : "不自動重試";
+  const aiBox = h("div");
+  async function loadAi() {
+    const r = await api("GET", "/ai");
+    if (stale(token)) return;
+    aiBox.replaceChildren(...Object.entries(r.providers).map(([id, p]) => aiKeyRow(id, p)));
+  }
+  function aiKeyRow(id, p) {
+    const input = h("input", { type: "password", autocomplete: "off", placeholder: p.configured ? "輸入新的金鑰以更換" : "貼上 API 金鑰", "aria-label": p.label + " API 金鑰" });
+    const save = h("button", { class: "btn small primary", disabled: p.source === "env", onclick: async () => {
+      if (!input.value.trim()) { toast("請貼上金鑰", "error"); return; }
+      try { await api("PUT", `/ai/keys/${id}`, { key: input.value.trim() }); toast("已儲存", "ok"); await loadAi(); } catch (e) { fail(e); }
+    } }, "儲存");
+    const clear = h("button", { class: "btn small", disabled: !p.configured || p.source === "env", onclick: async () => {
+      if (!(await confirmBox(`移除 ${p.label} 的 API 金鑰？使用它的 AI 排程會無法執行。`, { title: "移除金鑰", okLabel: "移除", danger: true }))) return;
+      try { await api("PUT", `/ai/keys/${id}`, { key: "" }); toast("已移除", "ok"); await loadAi(); } catch (e) { fail(e); }
+    } }, "移除");
+    const status = p.configured
+      ? h("span", { class: "badge ok" }, `已設定 ${p.hint}${p.source === "env" ? "（環境變數）" : ""}`)
+      : h("span", { class: "badge" }, "尚未設定");
+    return h("div", { class: "ai-key" },
+      h("div", { class: "row" }, h("strong", { text: p.label }), status),
+      p.source === "env" ? h("p", { class: "muted", text: "由環境變數設定，要更換請改環境變數後重啟。" }) : h("div", { class: "row" }, input, save, clear),
+      h("span", { class: "hint" }, "預設模型 ", h("code", { text: p.defaultModel }), "。金鑰申請：", h("a", { href: p.keyUrl, target: "_blank", rel: "noopener noreferrer", text: p.keyUrl })));
+  }
+
+  view.replaceChildren(pageHead("設定"),
+    h("div", { class: "stack" },
+      h("div", { class: "card" }, h("h3", { text: "伺服器設定（唯讀）" }),
+        h("dl", { class: "kv" }, ...kv("對外網址", s.serverUrl), ...kv("連接埠", s.port), ...kv("Debug 模式", s.debug ? "開啟（正式環境請關閉）" : "關閉"),
+          ...kv("CORS 來源", Array.isArray(s.corsOrigins) ? s.corsOrigins.join(", ") : s.corsOrigins), ...kv("上傳上限", s.maxUploadMb + " MB"), ...kv("後台登入有效", s.adminSessionHours + " 小時"),
+          ...kv("Webhook 重試間隔", delays), ...kv("紀錄保留", s.logRetentionDays + " 天"), ...kv("排程補送寬限", s.scheduleGraceMinutes + " 分鐘")),
+        h("p", { class: "muted", text: "這些設定由環境變數控制，修改後需重新啟動伺服器。每個 Bot 的 Webhook 與金鑰請到「Bot 與邀請碼」管理；使用者的金鑰在「使用者」頁撤銷。" })),
+      h("div", { class: "card stack" }, h("h3", { text: "後台管理員密碼" }),
+        s.adminPasswordSource === "env" ? h("p", { class: "muted", text: "目前由環境變數 LOCALBOT_ADMIN_PASSWORD 設定，需改環境變數後重啟才能更換。" }) : h("p", { class: "muted", text: "更新後，其他已登入的裝置會立刻登出。至少 10 個字元。" }),
+        h("label", { class: "field" }, "目前密碼", cur), h("label", { class: "field" }, "新密碼", nw), h("label", { class: "field" }, "確認新密碼", nw2), h("div", {}, pwBtn)),
+      h("div", { class: "card stack" }, h("h3", { text: "AI 金鑰（排程推播的「AI 產生」使用）" }),
+        h("p", { class: "muted", text: "填入其中一家即可。金鑰只存在伺服器的金鑰檔（.localbot_secrets.json），後台不會再顯示完整內容。AI 服務依用量另外向你收費。" }),
+        aiBox)));
+  await loadAi();
+}
+
+// ============================================================
+// 排程推播
+// ============================================================
+const WEEKDAYS = ["一", "二", "三", "四", "五", "六", "日"];
+function describeSchedule(s) {
+  if (s.type === "once") return "單次 " + fmtTime(s.at);
+  if (s.type === "daily") return "每天 " + s.time;
+  if (s.type === "weekly") return "每週" + s.days.map((d) => WEEKDAYS[d]).join("、") + " " + s.time;
+  return `每月 ${s.day} 日 ${s.time}`;
+}
+function describeTarget(t) { return t.type === "broadcast" ? "全體廣播" : `指定 ${t.userIds.length} 位`; }
+function describeMessages(msgs) {
+  const first = msgs[0];
+  const label = first.type === "text" ? first.text : first.type === "ai" ? `🤖 AI（${first.provider === "openai" ? "OpenAI" : "Claude"}）：${first.prompt}` : `[${first.type}]`;
+  return (msgs.length > 1 ? `（${msgs.length} 則）` : "") + label;
+}
+function tzLabel(offsetMin) {
+  const sign = offsetMin >= 0 ? "+" : "-", a = Math.abs(offsetMin);
+  return `UTC${sign}${pad(Math.floor(a / 60))}:${pad(a % 60)}`;
+}
+function scheduleStatus(s) {
+  if (s.status === "paused") return h("span", { class: "badge" }, "已停用");
+  if (s.status === "done") return h("span", { class: "badge brand" }, "已執行完畢");
+  return h("span", { class: "badge ok" }, h("i", { class: "dot" }), "運作中");
+}
+function lastResultText(s) {
+  const r = s.lastResult;
+  if (!r) return "尚未執行";
+  const kind = { auto: "自動", manual: "手動", missed: "錯過" }[r.kind] || r.kind;
+  if (r.kind === "missed") return `${kind}：${r.error || ""}`;
+  return `${kind}｜送出 ${r.sent}${r.skipped ? `、略過 ${r.skipped}` : ""}${r.error ? "｜有錯誤" : ""}`;
+}
+function localInputValue(ms) {
+  const d = new Date(ms);
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+async function viewSchedules(view, token) {
+  const box = h("div");
+  const info = h("span", { class: "muted" });
+  const addBtn = h("button", { class: "btn primary", onclick: () => openScheduleForm(null) }, "新增排程");
+  const botFilter = botSelect({ all: true, onchange: () => refresh() });
+  view.replaceChildren(pageHead("排程推播", info, botFilter, addBtn), box);
+  let meta = { serverTime: Date.now(), utcOffsetMinutes: -new Date().getTimezoneOffset() };
+  const refresh = () => load().catch(fail);
+
+  async function load() {
+    const r = await api("GET", "/schedules" + (botFilter.value ? `?botId=${enc(botFilter.value)}` : ""));
+    if (stale(token)) return;
+    meta = r;
+    info.textContent = `伺服器時間 ${fmtTime(r.serverTime)}（${tzLabel(r.utcOffsetMinutes)}）`;
+    if (!r.schedules.length) {
+      box.replaceChildren(h("div", { class: "card empty", text: "還沒有排程。按「新增排程」建立第一個。" }));
+      return;
+    }
+    const head = ["名稱", "Bot", "時間", "對象", "內容", "下次執行", "最近一次", "狀態", ""];
+    const rows = r.schedules.map((s) => h("tr", {},
+      h("td", {}, h("div", { class: "name", text: s.name })),
+      h("td", { text: s.botName || s.botId }),
+      h("td", { text: describeSchedule(s.schedule) }),
+      h("td", { text: describeTarget(s.target) }),
+      h("td", {}, h("div", { class: "summary", text: describeMessages(s.messages) })),
+      h("td", { class: "mono", text: s.nextRunAt ? fmtTime(s.nextRunAt) : "—" }),
+      h("td", {}, h("div", { class: "muted", text: lastResultText(s) }), s.lastRunAt ? h("div", { class: "mono muted", text: ago(s.lastRunAt) }) : null),
+      h("td", {}, scheduleStatus(s)),
+      h("td", { class: "actions" }, h("div", { class: "row end" },
+        s.status === "done" ? null : h("button", { class: "btn small", onclick: () => toggle(s) }, s.enabled ? "停用" : "啟用"),
+        h("button", { class: "btn small", onclick: () => runNow(s) }, "立即執行"),
+        h("button", { class: "btn small", onclick: () => showRuns(s) }, "紀錄"),
+        h("button", { class: "btn small", onclick: () => openScheduleForm(s) }, "編輯"),
+        h("button", { class: "btn small danger", onclick: () => remove(s) }, "刪除")))));
+    box.replaceChildren(h("div", { class: "table-wrap" }, h("table", {}, h("thead", {}, h("tr", {}, head.map((t) => h("th", { text: t })))), h("tbody", {}, rows))));
+  }
+  async function toggle(s) {
+    try { await api("PATCH", `/schedules/${s.id}`, { enabled: !s.enabled }); toast(s.enabled ? "已停用" : "已啟用", "ok"); await load(); } catch (e) { fail(e); }
+  }
+  async function runNow(s) {
+    const who = s.target.type === "broadcast" ? `「${s.botName || s.botId}」全部未封鎖的好友` : `指定的 ${s.target.userIds.length} 位使用者`;
+    if (!(await confirmBox(`現在就把「${s.name}」傳給${who}？不會影響原本的排程時間。`, { title: "立即執行", okLabel: "送出" }))) return;
+    if (s.messages.some((m) => m.type === "ai")) toast("AI 產生內容中，可能需要一兩分鐘…");
+    try {
+      const r = await api("POST", `/schedules/${s.id}/run`, { confirm: true });
+      toast(`已送出 ${r.sent} 位${r.skipped ? `，略過 ${r.skipped} 位` : ""}${r.error ? "（有錯誤，請看紀錄）" : ""}`, r.error ? "error" : "ok");
+      await load();
+    } catch (e) { fail(e); }
+  }
+  async function remove(s) {
+    if (!(await confirmBox(`刪除排程「${s.name}」與它的執行紀錄？`, { title: "刪除排程", okLabel: "刪除", danger: true }))) return;
+    try { await api("DELETE", `/schedules/${s.id}`); toast("已刪除", "ok"); await load(); } catch (e) { fail(e); }
+  }
+  async function showRuns(s) {
+    try {
+      const r = await api("GET", `/schedules/${s.id}/runs`);
+      const kindName = { auto: "自動", manual: "手動", missed: "錯過" };
+      const content = r.runs.length
+        ? h("div", { class: "table-wrap" }, h("table", {}, h("thead", {}, h("tr", {}, ["時間", "類型", "送出", "略過", "備註"].map((t) => h("th", { text: t })))),
+          h("tbody", {}, r.runs.map((x) => h("tr", {},
+            h("td", { class: "mono", text: fmtTime(x.created_at) }), h("td", { text: kindName[x.kind] || x.kind }),
+            h("td", { text: String(x.sent) }), h("td", { text: String(x.skipped) }), h("td", { text: x.error || "" }))))))
+        : h("div", { class: "empty", text: "還沒有執行紀錄" });
+      modal({ title: `執行紀錄：${s.name}`, wide: true, content: [content, h("p", { class: "muted", text: "每個排程保留最近 50 筆。" })] });
+    } catch (e) { fail(e); }
+  }
+
+  async function openScheduleForm(existing) {
+    if (!botList().length) { toast("請先建立 Bot", "error"); return; }
+    const ex = existing;
+    const exMsgs = ex ? ex.messages : [{ type: "text", text: "" }];
+    const simple = exMsgs.length === 1 && exMsgs[0].type === "text" && Object.keys(exMsgs[0]).length === 2;
+    const exAi = exMsgs.length === 1 && exMsgs[0].type === "ai" ? exMsgs[0] : null;
+    const sch = ex ? ex.schedule : { type: "daily", time: "09:00" };
+    let msgMode = simple ? "text" : exAi ? "ai" : "json";
+    let targetType = ex ? ex.target.type : "broadcast";
+
+    const name = h("input", { type: "text", maxLength: 60, value: ex ? ex.name : "", placeholder: "例如：每日早安", "aria-label": "排程名稱" });
+    const text = h("textarea", { maxLength: 5000, rows: 4, placeholder: "要傳送的文字…", "aria-label": "文字內容", value: simple ? exMsgs[0].text : "" });
+    const json = h("textarea", { rows: 8, class: "mono", spellcheck: false, "aria-label": "訊息 JSON",
+      value: JSON.stringify(simple ? [{ type: "text", text: "你好" }] : exMsgs, null, 2) });
+    const textField = h("label", { class: "field" }, "文字內容", text);
+    const jsonField = h("label", { class: "field" }, "訊息 JSON", json,
+      h("span", { class: "hint", text: "LINE 訊息物件的陣列（最多 5 則），例如 Flex、圖片、Imagemap；也可貼單一物件。" }));
+    const msgRadio = (value, label) => h("label", { class: "row" }, h("input", { type: "radio", name: "msgmode", value, checked: value === msgMode, onchange: () => { msgMode = value; syncMsg(); } }), label);
+    function syncMsg() { textField.classList.toggle("hidden", msgMode !== "text"); jsonField.classList.toggle("hidden", msgMode !== "json"); aiField.classList.toggle("hidden", msgMode !== "ai"); }
+
+    // AI 產生：每次執行時請 AI 依提示詞寫內容，再當成文字訊息送出
+    let aiInfo = { providers: {}, variables: [] };
+    try { aiInfo = await api("GET", "/ai"); } catch (e) { fail(e); }
+    const aiProvider = h("select", { "aria-label": "AI 服務" }, Object.entries(aiInfo.providers).map(([id, p]) =>
+      h("option", { value: id, text: p.label + (p.configured ? "" : "（尚未設定金鑰）"), selected: exAi ? exAi.provider === id : false })));
+    if (!exAi) { const firstReady = Object.keys(aiInfo.providers).find((id) => aiInfo.providers[id].configured); if (firstReady) aiProvider.value = firstReady; }
+    const aiModel = h("input", { type: "text", maxLength: 80, value: exAi && exAi.model ? exAi.model : "", "aria-label": "模型" });
+    const syncModelHint = () => { const p = aiInfo.providers[aiProvider.value]; aiModel.placeholder = p ? `留空使用預設：${p.defaultModel}` : ""; };
+    aiProvider.addEventListener("change", syncModelHint); syncModelHint();
+    const aiPrompt = h("textarea", { maxLength: 4000, rows: 6, "aria-label": "給 AI 的指示",
+      placeholder: "例如：請搜尋 {yesterday} 美股收盤資訊，整理三大指數漲跌、主要個股與重要新聞，最後給一句今日觀察重點。",
+      value: exAi ? exAi.prompt : "" });
+    const aiWeb = h("input", { type: "checkbox", checked: exAi ? !!exAi.webSearch : true });
+    const aiMax = h("input", { type: "number", min: 100, max: 5000, step: 100, value: exAi ? exAi.maxChars || 1200 : 1200, "aria-label": "字數上限" });
+    const aiOut = h("div", { class: "stack" });
+    const aiTry = h("button", { class: "btn small", type: "button", onclick: async () => {
+      let m; try { m = readAi(); } catch (e) { toast(e.message, "error"); return; }
+      aiTry.disabled = true; aiTry.textContent = "產生中…（可能要一兩分鐘）";
+      aiOut.replaceChildren();
+      try {
+        const r = await api("POST", "/ai/preview", m);
+        aiOut.replaceChildren(h("div", { class: "muted", text: `試產生結果（${(r.ms / 1000).toFixed(1)} 秒、${r.text.length} 字；不會傳給任何人）` }), h("pre", { class: "ai-out", text: r.text }));
+      } catch (e) { aiOut.replaceChildren(h("div", { class: "badge bad", text: e.message })); }
+      finally { aiTry.disabled = false; aiTry.textContent = "試產生一次"; }
+    } }, "試產生一次");
+    function readAi() {
+      if (!aiPrompt.value.trim()) throw new Error("請輸入給 AI 的指示");
+      const m = { type: "ai", provider: aiProvider.value, prompt: aiPrompt.value, webSearch: aiWeb.checked, maxChars: parseInt(aiMax.value, 10) || 1200 };
+      if (aiModel.value.trim()) m.model = aiModel.value.trim();
+      return m;
+    }
+    const noKey = !Object.values(aiInfo.providers).some((p) => p.configured);
+    const aiField = h("div", { class: "stack" },
+      noKey ? h("p", { class: "badge warn", text: "還沒有設定 AI 金鑰：請先到「設定 → AI 金鑰」貼上 Claude 或 OpenAI 的 API 金鑰。" }) : null,
+      h("div", { class: "row ai-row" }, h("label", { class: "field" }, "AI 服務", aiProvider), h("label", { class: "field" }, "模型（選填）", aiModel)),
+      h("label", { class: "field" }, "給 AI 的指示", aiPrompt,
+        h("span", { class: "hint", text: "每次執行都會重新產生。可用變數：{today} 今天、{yesterday} 昨天、{weekday} 星期幾、{now} 現在時間（伺服器時區）。AI 會用繁體中文、純文字回覆。" })),
+      h("label", { class: "row" }, aiWeb, "允許 AI 上網搜尋最新資料（股市、新聞、天氣等需要勾選）"),
+      h("label", { class: "field" }, "字數上限（約）", aiMax),
+      h("div", {}, aiTry), aiOut);
+
+    const formBot = h("select", { "aria-label": "Bot" }, botList().map((b) => h("option", { value: b.botId, text: b.name + (b.enabled ? "" : "（已停用）") })));
+    formBot.value = ex && botList().some((b) => b.botId === ex.botId) ? ex.botId : pickBot(true);
+    const selected = new Set(ex && ex.target.type === "users" ? ex.target.userIds : []);
+    let userBoxes = [];
+    const count = h("span", { class: "muted", text: `已選 ${selected.size} 位` });
+    const filter = h("input", { type: "search", placeholder: "搜尋使用者…", "aria-label": "搜尋使用者" });
+    const pickList = h("div", { class: "pick-list" });
+    async function fillUsers() {
+      let users = [];
+      try { users = (await api("GET", `/users?limit=200&botId=${enc(formBot.value)}`)).users; } catch (e) { fail(e); }
+      userBoxes = users.map((u) => {
+        const cb = h("input", { type: "checkbox", checked: selected.has(u.userId), onchange: () => { cb.checked ? selected.add(u.userId) : selected.delete(u.userId); count.textContent = `已選 ${selected.size} 位`; } });
+        return h("label", { class: "row pick", dataset: { q: `${u.displayName || ""} ${u.userId}`.toLowerCase() } }, cb, `${u.displayName || "（未命名）"}　`, h("span", { class: "mono muted", text: shortId(u.userId, 20) }));
+      });
+      pickList.replaceChildren(...(userBoxes.length ? userBoxes : [h("div", { class: "empty", text: "這個 Bot 還沒有好友" })]));
+      count.textContent = `已選 ${selected.size} 位`;
+    }
+    formBot.addEventListener("change", () => { selected.clear(); fillUsers(); });
+    filter.addEventListener("input", () => { const q = filter.value.trim().toLowerCase(); userBoxes.forEach((l) => l.classList.toggle("hidden", !!q && !l.dataset.q.includes(q))); });
+    await fillUsers();
+    const usersField = h("div", { class: "stack" }, filter, pickList, count);
+    const targetRadio = (value, label) => h("label", { class: "row" }, h("input", { type: "radio", name: "target", value, checked: value === targetType, onchange: () => { targetType = value; usersField.classList.toggle("hidden", value !== "users"); } }), label);
+    usersField.classList.toggle("hidden", targetType !== "users");
+
+    const typeSel = h("select", { "aria-label": "重複方式" },
+      [["once", "單次"], ["daily", "每天"], ["weekly", "每週"], ["monthly", "每月"]].map(([v, l]) => h("option", { value: v, text: l, selected: v === sch.type })));
+    const onceInput = h("input", { type: "datetime-local", "aria-label": "執行時間", value: sch.type === "once" ? localInputValue(sch.at) : localInputValue(Date.now() + 3600e3) });
+    const timeInput = h("input", { type: "time", "aria-label": "時間", value: sch.time || "09:00" });
+    const dayInput = h("input", { type: "number", min: 1, max: 31, "aria-label": "每月幾日", value: sch.day || 1 });
+    const dayChecks = WEEKDAYS.map((label, i) => h("label", { class: "row pick" }, h("input", { type: "checkbox", value: i, checked: sch.type === "weekly" ? sch.days.includes(i) : i === 0 }), label));
+    const onceRow = h("label", { class: "field" }, "執行時間（以你的瀏覽器時區換算）", onceInput);
+    const timeRow = h("label", { class: "field" }, "每次執行的時間", timeInput);
+    const weekRow = h("div", { class: "field" }, "星期", h("div", { class: "row" }, dayChecks));
+    const dayRow = h("label", { class: "field" }, "每月幾日", dayInput, h("span", { class: "hint", text: "沒有 31 日的月份會改在月底執行。" }));
+    const tzNote = h("span", { class: "hint", text: `每日／每週／每月的時間以伺服器時區為準：${tzLabel(meta.utcOffsetMinutes)}，伺服器現在 ${fmtTime(meta.serverTime)}。` });
+    const previewBox = h("div", { class: "muted" });
+    const enabled = h("input", { type: "checkbox", checked: ex ? ex.enabled : true });
+
+    function readSchedule() {
+      const type = typeSel.value;
+      if (type === "once") { const at = new Date(onceInput.value).getTime(); return Number.isFinite(at) ? { type, at } : null; }
+      if (!timeInput.value) return null;
+      if (type === "daily") return { type, time: timeInput.value };
+      if (type === "weekly") { const days = dayChecks.map((l, i) => (l.querySelector("input").checked ? i : -1)).filter((i) => i >= 0); return days.length ? { type, days, time: timeInput.value } : null; }
+      const day = parseInt(dayInput.value, 10);
+      return day >= 1 && day <= 31 ? { type, day, time: timeInput.value } : null;
+    }
+    let previewSeq = 0;
+    async function updatePreview() {
+      const s = readSchedule(), seq = ++previewSeq;
+      onceRow.classList.toggle("hidden", typeSel.value !== "once");
+      timeRow.classList.toggle("hidden", typeSel.value === "once");
+      weekRow.classList.toggle("hidden", typeSel.value !== "weekly");
+      dayRow.classList.toggle("hidden", typeSel.value !== "monthly");
+      tzNote.classList.toggle("hidden", typeSel.value === "once");
+      if (!s) { previewBox.textContent = "請完成時間設定"; return; }
+      try {
+        const r = await api("POST", "/schedules/preview", { schedule: s });
+        if (seq === previewSeq) previewBox.textContent = r.next.length ? "接下來：" + r.next.map(fmtTime).join("　、　") : "這個時間已經過了";
+      } catch (e) { if (seq === previewSeq) previewBox.textContent = e.message; }
+    }
+    [typeSel, onceInput, timeInput, dayInput].forEach((el) => el.addEventListener("input", updatePreview));
+    dayChecks.forEach((l) => l.addEventListener("change", updatePreview));
+
+    function collectMessages() {
+      if (msgMode === "text") return [{ type: "text", text: text.value }];
+      if (msgMode === "ai") return [readAi()];
+      let parsed;
+      try { parsed = JSON.parse(json.value); } catch (e) { throw new Error("訊息 JSON 格式錯誤：" + e.message); }
+      return Array.isArray(parsed) ? parsed : [parsed];
+    }
+    const dlg = modal({
+      title: ex ? "編輯排程" : "新增排程", wide: true,
+      content: [
+        h("label", { class: "field" }, "名稱", name),
+        h("label", { class: "field" }, "使用哪個 Bot 傳送", formBot),
+        h("div", { class: "field" }, "訊息內容", h("div", { class: "row" }, msgRadio("text", "純文字"), msgRadio("ai", "🤖 AI 產生"), msgRadio("json", "進階（LINE 訊息 JSON）"))), textField, aiField, jsonField,
+        h("div", { class: "field" }, "傳送對象", h("div", { class: "row" }, targetRadio("broadcast", "這個 Bot 的全體好友（略過已封鎖）"), targetRadio("users", "指定使用者"))), usersField,
+        h("label", { class: "field" }, "重複方式", typeSel), onceRow, timeRow, weekRow, dayRow, tzNote, previewBox,
+        h("label", { class: "row" }, enabled, "啟用這個排程"),
+      ],
+      actions: [{ label: "取消", onClick: (d) => d.close() }, { label: "儲存", kind: "primary", onClick: async (d) => {
+        const s = readSchedule();
+        if (!s) { toast("請完成時間設定", "error"); return; }
+        let messages;
+        try { messages = collectMessages(); } catch (e) { toast(e.message, "error"); return; }
+        const target = targetType === "broadcast" ? { type: "broadcast" } : { type: "users", userIds: [...selected] };
+        const body = { botId: formBot.value, name: name.value, messages, target, schedule: s, enabled: enabled.checked };
+        try {
+          await api(ex ? "PUT" : "POST", ex ? `/schedules/${ex.id}` : "/schedules", body);
+          toast("已儲存", "ok"); d.close(); refresh();
+        } catch (e) { fail(e); }
+      } }],
+    });
+    syncMsg(); updatePreview();
+    name.focus();
+    return dlg;
+  }
+
+  await load();
+  state.timer = setInterval(() => load().catch(() => {}), 30000);
+}
+
+// ============================================================
+// Webhook 日誌
+// ============================================================
+const DELIVERY_STATE = {
+  success: ["ok", "成功"], retrying: ["warn", "等待重試"], dead: ["bad", "已放棄"], sending: ["brand", "傳送中"],
+};
+function stateBadge(st) { const [cls, label] = DELIVERY_STATE[st] || ["", st]; return h("span", { class: "badge " + cls }, label); }
+
+async function viewWebhookLog(view, token) {
+  let filter = "", query = "", list = [], hasMore = false, counts = { success: 0, retrying: 0, dead: 0, sending: 0 };
+  const box = h("div"), chips = h("div", { class: "row" });
+  const search = h("input", { type: "search", placeholder: "搜尋使用者 ID、事件類型、事件 ID…", "aria-label": "搜尋", class: "grow-input" });
+  const resendAll = h("button", { class: "btn", onclick: requeueAll }, "全部重送失敗項目");
+  const botSel = botSelect({ all: true, onchange: () => load(true).catch(fail) });
+  view.replaceChildren(pageHead("Webhook 日誌", botSel, resendAll), h("p", { class: "muted", text: "平台每次轉送事件給 Bot 都會記錄在這裡。連線失敗、逾時、HTTP 5xx／408／429 會自動重試（間隔遞增）；其他 4xx 表示 Bot 拒絕處理，不會重試。重送的事件帶有相同的 webhookEventId 與 isRedelivery=true。" }), chips, search, box);
+  let timer = null;
+  search.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(() => { query = search.value.trim(); load(true).catch(fail); }, 300); });
+
+  function drawChips() {
+    const items = [["", "全部", counts.success + counts.retrying + counts.dead + counts.sending], ["success", "成功", counts.success], ["retrying", "等待重試", counts.retrying], ["dead", "已放棄", counts.dead]];
+    chips.replaceChildren(...items.map(([v, label, n]) => h("button", { class: "btn small" + (filter === v ? " primary" : ""), onclick: () => { filter = v; load(true).catch(fail); } }, `${label} ${num(n)}`)));
+    resendAll.classList.toggle("hidden", !counts.dead);
+  }
+  async function load(reset) {
+    const before = !reset && list.length ? `&beforeId=${list[list.length - 1].id}` : "";
+    const r = await api("GET", `/webhook/deliveries?limit=50&state=${enc(filter)}&q=${enc(query)}${botQuery(botSel.value)}${before}`);
+    if (stale(token)) return;
+    list = reset ? r.deliveries : list.concat(r.deliveries);
+    hasMore = r.hasMore; counts = r.counts;
+    draw();
+  }
+  function draw() {
+    drawChips();
+    if (!list.length) { box.replaceChildren(h("div", { class: "card empty", text: "沒有符合的紀錄" })); return; }
+    const head = ["時間", "Bot", "使用者", "事件", "狀態", "次數", "最近結果", "下次重試", ""];
+    const rows = list.map((d) => h("tr", { class: "clickable", onclick: () => openDelivery(d.id) },
+      h("td", { class: "mono", text: fmtTime(d.createdAt) }),
+      h("td", { text: d.botName || d.botId || "—" }),
+      h("td", { class: "mono", text: d.userId ? shortId(d.userId, 16) : "—" }),
+      h("td", { text: d.eventType ? d.eventType + (d.eventCount > 1 ? ` ×${d.eventCount}` : "") : "—" }),
+      h("td", {}, stateBadge(d.state)),
+      h("td", { text: String(d.attempts) }),
+      h("td", {}, h("div", { class: "summary", text: d.state === "success" ? (d.lastStatus ? `HTTP ${d.lastStatus}` : "") : (d.lastError || "") })),
+      h("td", { class: "mono", text: d.state === "retrying" && d.nextAttemptAt ? fmtTime(d.nextAttemptAt) : "—" }),
+      h("td", { class: "actions" }, ["dead", "retrying"].includes(d.state)
+        ? h("button", { class: "btn small", onclick: (e) => { e.stopPropagation(); resend(d.id); } }, "重送") : null)));
+    box.replaceChildren(h("div", { class: "table-wrap" }, h("table", {}, h("thead", {}, h("tr", {}, head.map((t) => h("th", { text: t })))), h("tbody", {}, rows))),
+      ...(hasMore ? [h("div", { class: "row center" }, h("button", { class: "btn", onclick: () => load(false).catch(fail) }, "載入更多"))] : []));
+  }
+  async function resend(id, dlg) {
+    try {
+      const r = await api("POST", `/webhook/deliveries/${id}/resend`);
+      toast(r.ok ? `重送成功（HTTP ${r.status}，${r.ms} ms）` : `重送失敗：${r.error || ""}`, r.ok ? "ok" : "error");
+      if (dlg) dlg.close();
+      await load(true);
+    } catch (e) { fail(e); }
+  }
+  async function requeueAll() {
+    if (!(await confirmBox(`把 ${counts.dead} 筆已放棄的轉送全部排回佇列，由背景逐一重送？`, { title: "全部重送", okLabel: "重送" }))) return;
+    try { const r = await api("POST", "/webhook/deliveries/resend-failed", { confirm: true }); toast(`已排入 ${r.queued} 筆`, "ok"); await load(true); } catch (e) { fail(e); }
+  }
+  async function openDelivery(id) {
+    try {
+      const d = await api("GET", `/webhook/deliveries/${id}`);
+      let pretty = d.body;
+      try { pretty = JSON.stringify(JSON.parse(d.body), null, 2); } catch { /* 原樣顯示 */ }
+      const attempts = d.attemptLog.length
+        ? h("div", { class: "table-wrap" }, h("table", {}, h("thead", {}, h("tr", {}, ["#", "時間", "方式", "結果", "耗時"].map((t) => h("th", { text: t })))),
+          h("tbody", {}, d.attemptLog.map((a) => h("tr", {}, h("td", { text: String(a.no) }), h("td", { class: "mono", text: fmtTime(a.at) }), h("td", { text: a.manual ? "手動" : "自動" }),
+            h("td", {}, a.ok ? h("span", { class: "badge ok" }, `HTTP ${a.status}`) : h("span", { class: "badge bad" }, a.error || "失敗")), h("td", { text: a.ms + " ms" }))))))
+        : h("div", { class: "muted", text: "尚無嘗試紀錄" });
+      const dlg = modal({
+        title: `轉送 #${d.id}`, wide: true,
+        content: [
+          h("dl", { class: "kv" },
+            h("dt", { text: "狀態" }), h("dd", {}, stateBadge(d.state)),
+            h("dt", { text: "Bot" }), h("dd", { text: `${d.botName || "—"}（${d.botId || "—"}）` }),
+            h("dt", { text: "使用者" }), h("dd", { class: "mono", text: d.userId || "—" }),
+            h("dt", { text: "事件" }), h("dd", { text: `${d.eventType || "—"}${d.eventCount > 1 ? ` ×${d.eventCount}` : ""}` }),
+            h("dt", { text: "事件 ID" }), h("dd", { class: "mono", text: d.eventId || "—" }),
+            h("dt", { text: "建立時間" }), h("dd", { text: fmtTime(d.createdAt) }),
+            d.state === "retrying" ? [h("dt", { text: "下次重試" }), h("dd", { text: fmtTime(d.nextAttemptAt) })] : null),
+          h("h3", { text: "嘗試紀錄" }), attempts,
+          h("h3", { text: "事件內容" }), h("pre", { class: "json", text: pretty }),
+        ],
+        actions: ["dead", "retrying", "success"].includes(d.state)
+          ? [{ label: d.state === "success" ? "再送一次" : "立即重送", kind: "primary", onClick: async (x) => {
+            if (d.state === "success" && !(await confirmBox("這筆已經成功送達，確定要再送一次給 Bot？Bot 可能會重複處理。", { okLabel: "再送一次" }))) return;
+            resend(d.id, x);
+          } }] : [],
+      });
+    } catch (e) { fail(e); }
+  }
+  await load(true);
+  state.timer = setInterval(() => load(true).catch(() => {}), 10000);
+}
+
+// ---------- 啟動 ----------
+(async function boot() {
+  try {
+    const r = await api("GET", "/session", undefined, { noAuthRedirect: true });
+    if (r.authenticated) { state.csrf = r.csrf; showApp(); } else showLogin();
+  } catch { showLogin("無法連線到伺服器"); }
+})();
+</script>
+</body>
+</html>

@@ -10,6 +10,13 @@ from .models import Event, MessageEvent, parse_event
 
 
 class WebhookHandler:
+    # 子類別（例如 localbot.v3）可替換事件解析器與 MessageEvent 類別
+    _message_event_cls: Type = MessageEvent
+
+    @staticmethod
+    def _parse_event(raw_event):
+        return parse_event(raw_event)
+
     def __init__(self, channel_secret: str):
         self.channel_secret = channel_secret
         self._handlers: Dict[Tuple[Type, Optional[Type]], List[Callable]] = {}
@@ -45,38 +52,45 @@ class WebhookHandler:
         except Exception as e:
             raise ValueError(f"Failed to parse JSON body: {e}")
 
-        events_data = payload.get("events", []) if isinstance(payload, dict) else []
+        if not isinstance(payload, dict):
+            return
+        events_data = payload.get("events", [])
+        destination = payload.get("destination")
 
-        for raw_event in events_data:
-            event_obj = parse_event(raw_event)
+        for raw_event in events_data if isinstance(events_data, list) else []:
+            if not isinstance(raw_event, dict):
+                continue
+            event_obj = self._parse_event(raw_event)
             if event_obj is None:
                 continue
-            self._dispatch(event_obj)
+            self._dispatch(event_obj, destination)
 
-    def _dispatch(self, event: Event):
+    def _dispatch(self, event, destination: Optional[str] = None):
         """Dispatch event to registered callback."""
         dispatched = False
+        msg_event_cls = self._message_event_cls
 
-        if isinstance(event, MessageEvent) and event.message is not None:
+        message = getattr(event, "message", None)
+        if isinstance(event, msg_event_cls) and message is not None:
             # 1. Exact match for (MessageEvent, MessageSubclass)
-            msg_cls = event.message.__class__
-            if (MessageEvent, msg_cls) in self._handlers:
-                for func in self._handlers[(MessageEvent, msg_cls)]:
-                    self._call_handler(func, event)
+            key = (msg_event_cls, message.__class__)
+            if key in self._handlers:
+                for func in self._handlers[key]:
+                    self._call_handler(func, event, destination)
                 dispatched = True
 
         # 2. Match for (EventSubclass, None)
         event_cls = event.__class__
         if (event_cls, None) in self._handlers:
             for func in self._handlers[(event_cls, None)]:
-                self._call_handler(func, event)
+                self._call_handler(func, event, destination)
             dispatched = True
 
         # 3. Fallback to default handler
         if not dispatched and self._default_handler:
-            self._call_handler(self._default_handler, event)
+            self._call_handler(self._default_handler, event, destination)
 
-    def _call_handler(self, func: Callable, event: Event):
+    def _call_handler(self, func: Callable, event, destination: Optional[str] = None):
         sig = inspect.signature(func)
         param_count = len(sig.parameters)
         if param_count == 1:

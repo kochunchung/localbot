@@ -1,16 +1,10 @@
 /// Configuration for LocalBot App.
 class AppConfig {
-  /// Default Server URL — 請改成你自己的平台網址，或在 App 設定頁輸入。
+  /// 預設的伺服器網址（可選）。邀請碼加入畫面會用它當預設值；
+  /// 邀請連結 / QR Code 內本來就含有伺服器網址，通常不需要設定。
   /// 可在 build 時指定：flutter build apk --dart-define=LOCALBOT_SERVER_URL=https://your-domain
   static const String defaultServerUrl = String.fromEnvironment(
     'LOCALBOT_SERVER_URL',
-    defaultValue: 'https://your-domain.example.com',
-  );
-
-  /// App Secret（對應伺服器的 LOCALBOT_APP_SECRET）。
-  /// 預設留空，使用者在設定頁輸入；不要把真正的金鑰寫死在原始碼裡。
-  static const String defaultChannelSecret = String.fromEnvironment(
-    'LOCALBOT_APP_SECRET',
     defaultValue: '',
   );
 
@@ -19,14 +13,17 @@ class AppConfig {
 
   /// Storage keys
   static const String keyServerUrl = 'localbot_server_url';
-  static const String keyChannelSecret = 'localbot_channel_secret';
+  static const String keyUserToken = 'localbot_user_token';
   static const String keyUserId = 'localbot_user_id';
   static const String keyDisplayName = 'localbot_display_name';
-  static const String keyBotName = 'localbot_bot_name';
+  static const String keyBots = 'localbot_bots';
+  static const String keyUnread = 'localbot_unread';
+  static const String keyLastBot = 'localbot_last_bot';
 
-  /// 聊天室標題預設顯示的 Bot 名稱（可在設定頁修改）
-  static const String defaultBotName = 'LocalBot 助理';
+  /// 邀請連結：localbot://join?server=<網址>&code=<邀請碼>
+  static const String inviteScheme = 'localbot';
+  static const String inviteHost = 'join';
 
   /// App 版本（顯示於設定頁）
-  static const String appVersion = '1.1.0';
+  static const String appVersion = '1.3.0';
 }

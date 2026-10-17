@@ -9,6 +9,7 @@ import 'audio_player_widget.dart';
 import 'bot_avatar.dart';
 import 'template_widgets.dart';
 import 'flex_message_widget.dart';
+import 'media_bubbles.dart';
 
 /// 單則訊息：依訊息類型渲染，並處理頭像、時間與傳送狀態。
 class ChatBubble extends StatelessWidget {
@@ -24,6 +25,18 @@ class ChatBubble extends StatelessWidget {
   /// 失敗時點擊重送（可選）
   final VoidCallback? onRetry;
 
+  /// 長按訊息（顯示回覆 / 複製 / 刪除選單）
+  final VoidCallback? onLongPress;
+
+  /// 這則訊息引用的原訊息（找不到時為 null，只顯示「原訊息」）
+  final ChatMessage? quoted;
+
+  /// 原訊息的發送者名稱（「你」或 Bot 名稱）
+  final String? quotedSender;
+
+  /// Bot 頭像網址（見 [BotAvatar.url]）
+  final String? botAvatarUrl;
+
   static const double _avatarSize = 32;
   static const double _avatarGap = 8;
 
@@ -34,6 +47,10 @@ class ChatBubble extends StatelessWidget {
     this.showAvatar = true,
     this.showMeta = true,
     this.onRetry,
+    this.onLongPress,
+    this.quoted,
+    this.quotedSender,
+    this.botAvatarUrl,
   });
 
   bool get _isCarousel {
@@ -58,7 +75,10 @@ class ChatBubble extends StatelessWidget {
     final isCarousel = _isCarousel;
     final palette = ChatPalette.of(context);
 
-    final content = _buildContent(context, isUser, palette);
+    final built = _buildContent(context, isUser, palette);
+    final content = onLongPress == null
+        ? built
+        : GestureDetector(onLongPress: onLongPress, child: built);
 
     final column = Column(
       crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
@@ -86,7 +106,7 @@ class ChatBubble extends StatelessWidget {
         children: [
           if (!isUser) ...[
             showAvatar
-                ? const BotAvatar(size: _avatarSize)
+                ? BotAvatar(size: _avatarSize, url: botAvatarUrl)
                 : const SizedBox(width: _avatarSize),
             const SizedBox(width: _avatarGap),
           ],
@@ -161,6 +181,25 @@ class ChatBubble extends StatelessWidget {
       case 'flex':
         inner = _buildFlexBubble();
         break;
+      case 'video':
+        inner = VideoMessageBubble(message: message);
+        break;
+      case 'file':
+        inner = FileMessageBubble(
+          message: message,
+          isUser: isUser,
+          onAction: onAction,
+          borderRadius: _bubbleRadius(isUser),
+        );
+        break;
+      case 'imagemap':
+        inner = message.content is Map
+            ? ImagemapMessageWidget(
+                data: Map<String, dynamic>.from(message.content as Map),
+                onAction: onAction,
+              )
+            : _buildUnsupportedBubble(context, isUser, palette);
+        break;
       default:
         inner = _buildUnsupportedBubble(context, isUser, palette);
     }
@@ -190,9 +229,59 @@ class ChatBubble extends StatelessWidget {
         borderRadius: _bubbleRadius(isUser),
         border: isUser ? null : Border.all(color: palette.botBubbleBorder),
       ),
-      child: SelectableText(
-        message.text,
-        style: TextStyle(color: fg, fontSize: 15, height: 1.4),
+      child: message.quotedMessageId == null
+          ? Text(message.text, style: TextStyle(color: fg, fontSize: 15, height: 1.4))
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildQuote(fg),
+                const SizedBox(height: 6),
+                Text(message.text, style: TextStyle(color: fg, fontSize: 15, height: 1.4)),
+              ],
+            ),
+    );
+  }
+
+  /// 回覆訊息上方的引用框：發送者 + 原訊息摘要
+  Widget _buildQuote(Color fg) {
+    final q = quoted;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        color: fg.withValues(alpha: 0.08),
+        child: IntrinsicHeight(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(width: 3, color: fg.withValues(alpha: 0.45)),
+              Flexible(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 5, 10, 5),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        q == null ? '原訊息' : (quotedSender ?? ''),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: fg, fontSize: 12, fontWeight: FontWeight.w700),
+                      ),
+                      Text(
+                        q == null ? '這則訊息已不在這支手機上' : q.summary,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: fg.withValues(alpha: 0.75), fontSize: 12.5, height: 1.3),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -229,7 +318,7 @@ class ChatBubble extends StatelessWidget {
           ),
           if (text.isNotEmpty) ...[
             const SizedBox(height: 4),
-            SelectableText(text, style: TextStyle(color: palette.onBotBubble, fontSize: 15)),
+            Text(text, style: TextStyle(color: palette.onBotBubble, fontSize: 15)),
           ],
           if (url != null && url.isNotEmpty) ...[
             const SizedBox(height: 4),

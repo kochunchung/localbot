@@ -107,6 +107,169 @@ class LineBotApi:
 
         raise RuntimeError("LineBotApi has neither internal bridge nor server_url configured.")
 
+    # ------------------------------------------------------------------
+    # 多人推播 / 額度（對應 LINE /v2/bot/message/* 端點）
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _serialize(messages) -> list:
+        msg_list = messages if isinstance(messages, list) else [messages]
+        return [m.as_json_dict() if hasattr(m, 'as_json_dict') else m for m in msg_list]
+
+    def _v2_request(self, method: str, path: str, payload: Optional[dict] = None, timeout: int = 10):
+        if not self.server_url:
+            raise RuntimeError("此功能需要設定 server_url。")
+        import requests
+        headers = {"Authorization": f"Bearer {self.channel_access_token}"}
+        res = requests.request(
+            method,
+            f"{self.server_url.rstrip('/')}{path}",
+            headers=headers,
+            json=payload,
+            timeout=timeout,
+        )
+        if res.status_code >= 400:
+            raise LineBotApiError(status_code=res.status_code, error=res.text)
+        try:
+            return res.json()
+        except ValueError:
+            return {}
+
+    def multicast(self, to: List[str], messages, notification_disabled: bool = False, timeout=None):
+        """一次推播給多位使用者（最多 500 人）。"""
+        serialized = self._serialize(messages)
+        if self._bridge is not None and not self.server_url:
+            for uid in dict.fromkeys(to):
+                self._bridge.push_message(uid, serialized)
+            return {}
+        return self._v2_request("POST", "/v2/bot/message/multicast",
+                                {"to": list(to), "messages": serialized}, timeout or 10)
+
+    def broadcast(self, messages, notification_disabled: bool = False, timeout=None):
+        """推播給所有已註冊的使用者。"""
+        return self._v2_request("POST", "/v2/bot/message/broadcast",
+                                {"messages": self._serialize(messages)}, timeout or 10)
+
+    def narrowcast(self, messages, recipient=None, filter=None, limit=None, timeout=None):
+        """LocalBot 尚無受眾資料，narrowcast 會視同 broadcast。"""
+        payload = {"messages": self._serialize(messages)}
+        if recipient is not None:
+            payload["recipient"] = recipient
+        if filter is not None:
+            payload["filter"] = filter
+        return self._v2_request("POST", "/v2/bot/message/narrowcast", payload, timeout or 10)
+
+    def get_message_quota(self, timeout=None):
+        from .models import MessageQuota
+        data = self._v2_request("GET", "/v2/bot/message/quota", timeout=timeout or 10)
+        return MessageQuota(type=data.get("type", "none"), value=data.get("value"))
+
+    def get_message_quota_consumption(self, timeout=None):
+        from .models import QuotaConsumption
+        data = self._v2_request("GET", "/v2/bot/message/quota/consumption", timeout=timeout or 10)
+        return QuotaConsumption(total_usage=data.get("totalUsage", 0))
+
+    def show_loading_animation(self, chat_id: str, loading_seconds: int = 20, timeout=None):
+        """在 App 顯示「輸入中」動畫（loading_seconds：5～60，5 的倍數）。"""
+        return self._v2_request("POST", "/v2/bot/chat/loading/start",
+                                {"chatId": chat_id, "loadingSeconds": loading_seconds}, timeout or 10)
+
+    # ------------------------------------------------------------------
+    # Rich Menu（方法名稱與官方 v1 SDK 相同）
+    # ------------------------------------------------------------------
+    def create_rich_menu(self, rich_menu, timeout=None) -> str:
+        body = rich_menu.as_json_dict() if hasattr(rich_menu, "as_json_dict") else rich_menu
+        return self._v2_request("POST", "/v2/bot/richmenu", body, timeout or 10)["richMenuId"]
+
+    def validate_rich_menu_object(self, rich_menu, timeout=None):
+        body = rich_menu.as_json_dict() if hasattr(rich_menu, "as_json_dict") else rich_menu
+        return self._v2_request("POST", "/v2/bot/richmenu/validate", body, timeout or 10)
+
+    def get_rich_menu(self, rich_menu_id: str, timeout=None):
+        from .models import RichMenuResponse
+        return RichMenuResponse.from_dict(self._v2_request("GET", f"/v2/bot/richmenu/{rich_menu_id}", timeout=timeout or 10))
+
+    def get_rich_menu_list(self, timeout=None):
+        from .models import RichMenuResponse
+        data = self._v2_request("GET", "/v2/bot/richmenu/list", timeout=timeout or 10)
+        return [RichMenuResponse.from_dict(m) for m in data.get("richmenus", [])]
+
+    def delete_rich_menu(self, rich_menu_id: str, timeout=None):
+        return self._v2_request("DELETE", f"/v2/bot/richmenu/{rich_menu_id}", timeout=timeout or 10)
+
+    def set_rich_menu_image(self, rich_menu_id: str, content_type: str, content, timeout=None):
+        """content 可以是 bytes 或已開啟的檔案。"""
+        if not self.server_url:
+            raise RuntimeError("此功能需要設定 server_url。")
+        import requests
+        data = content.read() if hasattr(content, "read") else content
+        res = requests.post(
+            f"{self.server_url.rstrip('/')}/v2/bot/richmenu/{rich_menu_id}/content",
+            headers={"Authorization": f"Bearer {self.channel_access_token}", "Content-Type": content_type},
+            data=data,
+            timeout=timeout or 30,
+        )
+        if res.status_code >= 400:
+            raise LineBotApiError(status_code=res.status_code, error=res.text)
+        return {}
+
+    def get_rich_menu_image(self, rich_menu_id: str, timeout=None) -> "MessageContent":
+        if not self.server_url:
+            raise RuntimeError("此功能需要設定 server_url。")
+        import requests
+        res = requests.get(
+            f"{self.server_url.rstrip('/')}/v2/bot/richmenu/{rich_menu_id}/content",
+            headers={"Authorization": f"Bearer {self.channel_access_token}"},
+            timeout=timeout or 30,
+        )
+        if res.status_code >= 400:
+            raise LineBotApiError(status_code=res.status_code, error=res.text)
+        return MessageContent(res.content)
+
+    def link_rich_menu_to_user(self, user_id: str, rich_menu_id: str, timeout=None):
+        return self._v2_request("POST", f"/v2/bot/user/{user_id}/richmenu/{rich_menu_id}", timeout=timeout or 10)
+
+    def link_rich_menu_to_users(self, user_ids: List[str], rich_menu_id: str, timeout=None):
+        return self._v2_request("POST", "/v2/bot/richmenu/bulk/link",
+                                {"richMenuId": rich_menu_id, "userIds": list(user_ids)}, timeout or 10)
+
+    def unlink_rich_menu_from_user(self, user_id: str, timeout=None):
+        return self._v2_request("DELETE", f"/v2/bot/user/{user_id}/richmenu", timeout=timeout or 10)
+
+    def unlink_rich_menu_from_users(self, user_ids: List[str], timeout=None):
+        return self._v2_request("POST", "/v2/bot/richmenu/bulk/unlink", {"userIds": list(user_ids)}, timeout or 10)
+
+    def get_rich_menu_id_of_user(self, user_id: str, timeout=None) -> str:
+        return self._v2_request("GET", f"/v2/bot/user/{user_id}/richmenu", timeout=timeout or 10)["richMenuId"]
+
+    def set_default_rich_menu(self, rich_menu_id: str, timeout=None):
+        return self._v2_request("POST", f"/v2/bot/user/all/richmenu/{rich_menu_id}", timeout=timeout or 10)
+
+    def get_default_rich_menu_id(self, timeout=None) -> str:
+        return self._v2_request("GET", "/v2/bot/user/all/richmenu", timeout=timeout or 10)["richMenuId"]
+
+    def cancel_default_rich_menu(self, timeout=None):
+        return self._v2_request("DELETE", "/v2/bot/user/all/richmenu", timeout=timeout or 10)
+
+    def create_rich_menu_alias(self, rich_menu_alias, timeout=None):
+        return self._v2_request("POST", "/v2/bot/richmenu/alias", rich_menu_alias.as_json_dict(), timeout or 10)
+
+    def update_rich_menu_alias(self, rich_menu_alias_id: str, rich_menu_alias, timeout=None):
+        return self._v2_request("POST", f"/v2/bot/richmenu/alias/{rich_menu_alias_id}",
+                                {"richMenuId": rich_menu_alias.richMenuId}, timeout or 10)
+
+    def delete_rich_menu_alias(self, rich_menu_alias_id: str, timeout=None):
+        return self._v2_request("DELETE", f"/v2/bot/richmenu/alias/{rich_menu_alias_id}", timeout=timeout or 10)
+
+    def get_rich_menu_alias(self, rich_menu_alias_id: str, timeout=None):
+        from .models import RichMenuAlias
+        data = self._v2_request("GET", f"/v2/bot/richmenu/alias/{rich_menu_alias_id}", timeout=timeout or 10)
+        return RichMenuAlias(data["richMenuAliasId"], data["richMenuId"])
+
+    def get_rich_menu_alias_list(self, timeout=None):
+        from .models import RichMenuAlias
+        data = self._v2_request("GET", "/v2/bot/richmenu/alias/list", timeout=timeout or 10)
+        return [RichMenuAlias(a["richMenuAliasId"], a["richMenuId"]) for a in data.get("aliases", [])]
+
     def get_message_content(self, message_id: str) -> MessageContent:
         """Retrieve binary content (image/audio/video) for a given message ID."""
         if self._bridge is not None and hasattr(self._bridge, 'get_message_content'):

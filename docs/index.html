@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>LocalBot｜自架的 LINE Bot 平台</title>
-<meta name="description" content="LocalBot 讓你的 LINE Bot 程式碼只改 3 行 import，就能在自己的伺服器上運作。無訊息額度限制、資料留在自己主機，附開源 Flutter 手機 App。">
+<meta name="description" content="LocalBot 讓你的 LINE Bot 程式碼只改 3 行 import，就能在自己的伺服器上運作。無訊息額度限制、資料留在自己主機，內建管理後台、多 Bot、排程推播與 AI 產生訊息，附開源 Flutter 手機 App。">
 <meta property="og:title" content="LocalBot｜自架的 LINE Bot 平台">
 <meta property="og:description" content="改 3 行 import，把 LINE Bot 搬回自己的伺服器。無訊息額度、資料自主、開源。">
 <meta property="og:type" content="website">
@@ -241,14 +241,17 @@ handler = WebhookHandler(SECRET)</pre>
 <section id="features">
   <div class="wrap">
     <h2>聊天 App 該有的，都有</h2>
-    <p class="sub">App 採用 Material 3 設計並支援深色模式，Bot 送出的各種訊息格式都能正確顯示。</p>
+    <p class="sub">App 採用 Material 3 設計並支援深色模式，Bot 送出的各種訊息格式都能正確顯示；平台端則內建多 Bot、管理後台與自動化推播。</p>
     <div class="grid">
-      <div class="feat"><div class="ico">💬</div><h3>文字與離線佇列</h3><p>手機離線時訊息會排隊，上線後自動補送，不會漏接。</p></div>
-      <div class="feat"><div class="ico">📷</div><h3>圖片</h3><p>拍照或從相簿選取，支援全螢幕檢視。</p></div>
-      <div class="feat"><div class="ico">🎤</div><h3>語音訊息</h3><p>按住錄音、即時播放，Bot 可用 get_message_content 取得音檔。</p></div>
-      <div class="feat"><div class="ico">📍</div><h3>位置分享</h3><p>OpenStreetMap 地圖選點，送出 LocationMessage。</p></div>
-      <div class="feat"><div class="ico">📋</div><h3>Template 訊息</h3><p>Buttons、Confirm、Carousel 與 Postback 互動。</p></div>
-      <div class="feat"><div class="ico">🧩</div><h3>Flex 與貼圖</h3><p>Flex Message 基本渲染，貼圖包放進資料夾即可使用。</p></div>
+      <div class="feat"><div class="ico">💬</div><h3>文字與離線佇列</h3><p>手機離線時訊息會排隊，上線後自動補送；送出不必等 Bot 處理完，真的送不到才標示失敗。</p></div>
+      <div class="feat"><div class="ico">↩️</div><h3>引用回覆與未讀分隔</h3><p>長按訊息可回覆（Bot 會收到 quotedMessageId）、複製、刪除；有「以下為未讀訊息」分隔線與跳到最新按鈕。</p></div>
+      <div class="feat"><div class="ico">📷</div><h3>圖片、影片、檔案</h3><p>拍照或選相簿、影片播放、檔案下載（PDF、Office、zip…），圖片支援全螢幕檢視。</p></div>
+      <div class="feat"><div class="ico">🎤</div><h3>語音與位置</h3><p>按住錄音、即時播放；OpenStreetMap 地圖選點，送出 LocationMessage。</p></div>
+      <div class="feat"><div class="ico">📋</div><h3>Template、Flex、Imagemap</h3><p>Buttons / Confirm / Carousel、Flex Message 常用元件、可點擊區域的 Imagemap，加上 Quick Reply 與 Rich Menu。</p></div>
+      <div class="feat"><div class="ico">🤖</div><h3>多 Bot 與邀請碼</h3><p>一台平台服務多個 Bot，每個 Bot 有自己的頭像、金鑰與好友；掃 QR Code 或輸入邀請碼加入，每支手機獨立金鑰、可單獨撤銷。</p></div>
+      <div class="feat"><div class="ico">🛠</div><h3>內建管理後台</h3><p>儀表板、使用者、訊息紀錄、Rich Menu、Webhook 日誌與重送，單頁、嚴格 CSP、CSRF 防護。</p></div>
+      <div class="feat"><div class="ico">⏰</div><h3>排程推播</h3><p>單次／每日／每週／每月自動推播，可選全體或指定對象，附執行紀錄與立即執行。</p></div>
+      <div class="feat"><div class="ico">🧠</div><h3>AI 產生的推播</h3><p>每天自動請 Claude 或 OpenAI 依你的指示（可上網搜尋）寫好內容再送出，例如「整理昨天美股收盤」。</p></div>
     </div>
   </div>
 </section>
@@ -265,6 +268,7 @@ handler = WebhookHandler(SECRET)</pre>
           <tr><td>資料存放</td><td>平台方伺服器</td><td class="yes">你自己的主機</td></tr>
           <tr><td>現有 Bot 程式碼</td><td>原生</td><td class="yes">改 3 行即可</td></tr>
           <tr><td>內網 / 離線環境</td><td>需連外</td><td class="yes">可完全內網運作</td></tr>
+          <tr><td>排程推播 / AI 內容</td><td>需自行開發</td><td class="yes">後台設定即可（AI 為選用）</td></tr>
           <tr><td>用戶端</td><td>LINE App</td><td>開源 Flutter App</td></tr>
         </tbody>
       </table>
@@ -302,7 +306,7 @@ python app.py</pre>
       </div></div>
       <div class="step"><div>
         <h3>安裝 App 並連線</h3>
-        <p>下載 APK 安裝，在設定頁填入伺服器網址與 App Secret（位於 <code>server/.localbot_secrets.json</code>），就能開始聊天。</p>
+        <p>第一次啟動會在主控台顯示後台密碼，開啟 <code>/admin</code> 登入。到「Bot 與邀請碼」產生邀請碼，手機下載 APK 安裝後掃描 QR Code 或輸入邀請碼就能加入；一支手機可以加入多個 Bot。</p>
       </div></div>
     </div>
   </div>
@@ -321,7 +325,7 @@ python app.py</pre>
 
 <footer>
   <div class="wrap">
-    <p>LocalBot · MIT License · 歡迎 PR 與 Issue</p>
+    <p>LocalBot · 平台 v3.1.0 · App v1.4.0 · MIT License · 歡迎 PR 與 Issue</p>
     <p>LocalBot 是獨立開源專案，與 LINE Corporation / LY Corporation 無任何關係。「LINE」為其所有者之商標。</p>
   </div>
 </footer>

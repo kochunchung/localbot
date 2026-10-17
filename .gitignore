@@ -2,7 +2,8 @@
 .env
 *.env
 !.env.example
-server/.localbot_secrets.json
+.localbot_secrets.json
+server/.localbot_secrets*.json
 *.pfx
 *.p12
 *.jks
@@ -11,7 +12,9 @@ key.properties
 google-services.json
 GoogleService-Info.plist
 
-# 個人專屬 Bot 程式（含 API 金鑰、使用者 ID）
+# 個人專屬 Bot 程式（含 API 金鑰、使用者 ID）——只有 example_bot.py / example_bot_v3.py 可以公開
+local_bot.py
+local_bot*.py
 server/example_bot2.py
 server/my_bot*.py
 

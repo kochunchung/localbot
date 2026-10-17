@@ -25,11 +25,13 @@ from flask import Flask, request, abort
 from localbot import LineBotApi, WebhookHandler
 from localbot.exceptions import InvalidSignatureError
 from localbot.models import (
-    MessageEvent, PostbackEvent,
-    TextMessage, ImageMessage, AudioMessage,
+    MessageEvent, PostbackEvent, FollowEvent, UnfollowEvent,
+    TextMessage, ImageMessage, AudioMessage, VideoMessage, FileMessage,
+    ImagemapSendMessage, BaseSize, ImagemapArea, URIImagemapAction, MessageImagemapAction,
     TextSendMessage, ImageSendMessage, AudioSendMessage, StickerSendMessage,
     TemplateSendMessage, ButtonsTemplate, ConfirmTemplate, CarouselTemplate, CarouselColumn,
-    PostbackAction, MessageAction,
+    PostbackAction, MessageAction, DatetimePickerAction, LocationAction, CameraRollAction,
+    QuickReply, QuickReplyButton,
     FlexSendMessage
 )
 
@@ -135,23 +137,77 @@ def handle_text_message(event):
     elif text.lower() == "flex":
         flex_content = {
             "type": "bubble",
+            "size": "kilo",
+            "styles": {"footer": {"separator": True}},
             "header": {
-                "type": "box", "layout": "vertical",
-                "contents": [{"type": "text", "text": "LocalBot Flex 訊息", "weight": "bold", "size": "lg", "color": "#1DB446"}]
+                "type": "box", "layout": "vertical", "backgroundColor": "#4F46E5",
+                "contents": [
+                    {"type": "text", "text": "LocalBot Flex 訊息", "weight": "bold", "size": "lg", "color": "#FFFFFF"},
+                    {"type": "text", "text": "原生渲染，支援常用排版屬性", "size": "xs", "color": "#E0E7FF"},
+                ],
             },
             "body": {
-                "type": "box", "layout": "vertical",
+                "type": "box", "layout": "vertical", "spacing": "md",
                 "contents": [
-                    {"type": "text", "text": "這是一則原生渲染的 Flex 訊息卡片！", "wrap": True, "size": "md"},
-                    {"type": "text", "text": "支援巢狀排列、自訂顏色與按鈕互動。", "wrap": True, "size": "sm", "color": "#666666"}
-                ]
+                    {"type": "box", "layout": "horizontal", "contents": [
+                        {"type": "text", "text": "品項", "flex": 0, "color": "#888888", "size": "sm"},
+                        {"type": "text", "text": "拿鐵（大杯）", "align": "end", "size": "sm"},
+                    ]},
+                    {"type": "box", "layout": "horizontal", "contents": [
+                        {"type": "text", "text": "金額", "flex": 0, "color": "#888888", "size": "sm"},
+                        {"type": "text", "text": "NT$ 120", "align": "end", "weight": "bold", "size": "sm"},
+                    ]},
+                    {"type": "separator"},
+                    {"type": "text", "wrap": True, "size": "sm", "contents": [
+                        {"type": "span", "text": "提醒："},
+                        {"type": "span", "text": "請於 10 分鐘內取餐", "color": "#DC2626", "weight": "bold"},
+                    ]},
+                    {"type": "box", "layout": "vertical", "cornerRadius": "md", "paddingAll": "md",
+                     "background": {"type": "linearGradient", "angle": "90deg",
+                                    "startColor": "#EEF2FF", "endColor": "#CCFBF1"},
+                     "contents": [{"type": "text", "text": "漸層背景、圓角、內距", "size": "xs", "align": "center"}]},
+                ],
             },
             "footer": {
-                "type": "box", "layout": "vertical",
-                "contents": [{"type": "button", "action": {"type": "postback", "label": "點我測試", "data": "flex_click=true"}}]
-            }
+                "type": "box", "layout": "horizontal", "spacing": "sm",
+                "contents": [
+                    {"type": "button", "style": "secondary", "height": "sm",
+                     "action": {"type": "message", "label": "取消", "text": "取消訂單"}},
+                    {"type": "button", "style": "primary", "height": "sm",
+                     "action": {"type": "postback", "label": "確認", "data": "order=confirm", "displayText": "確認訂單"}},
+                ],
+            },
         }
         line_bot_api.reply_message(reply_token, FlexSendMessage(alt_text="Flex 測試卡片", contents=flex_content))
+
+    elif text.lower() == "quick":
+        quick_reply = QuickReply(items=[
+            QuickReplyButton(action=MessageAction(label="好喝", text="我覺得好喝")),
+            QuickReplyButton(action=PostbackAction(label="再來一杯", data="drink=more", display_text="再來一杯")),
+            QuickReplyButton(action=DatetimePickerAction(label="預約時間", data="action=book", mode="datetime")),
+            QuickReplyButton(action=CameraRollAction(label="傳照片")),
+            QuickReplyButton(action=LocationAction(label="傳位置")),
+        ])
+        line_bot_api.reply_message(
+            reply_token,
+            TextSendMessage(text="今天的咖啡如何？（點下方的快速回覆）", quick_reply=quick_reply),
+        )
+
+    elif text.lower() == "imagemap":
+        # 圖片放在 server/media/imagemap/<名稱>/ 即可；demo 為內建示範圖（左右兩塊）
+        line_bot_api.reply_message(
+            reply_token,
+            ImagemapSendMessage(
+                base_url=f"{PLATFORM_URL}/imagemap/demo",
+                alt_text="圖片地圖範例",
+                base_size=BaseSize(width=1040, height=520),
+                actions=[
+                    MessageImagemapAction(text="你點了左邊", area=ImagemapArea(x=0, y=0, width=520, height=520)),
+                    URIImagemapAction(link_uri="https://github.com/kochunchung/localbot",
+                                      area=ImagemapArea(x=520, y=0, width=520, height=520)),
+                ],
+            ),
+        )
 
     elif text.lower() == "push":
         line_bot_api.reply_message(reply_token, TextSendMessage(text="即將向您發送一條 Push 訊息..."))
@@ -160,7 +216,7 @@ def handle_text_message(event):
     else:
         line_bot_api.reply_message(
             reply_token,
-            TextSendMessage(text=f"收到您的訊息：{text}\n\n可輸入下列關鍵字測試特殊回覆：\n• buttons (按鈕選單)\n• confirm (確認框)\n• carousel (輪播卡片)\n• flex (Flex 訊息)\n• sticker (貼圖)\n• push (主動推播)")
+            TextSendMessage(text=f"收到您的訊息：{text}\n\n可輸入下列關鍵字測試特殊回覆：\n• buttons (按鈕選單)\n• confirm (確認框)\n• carousel (輪播卡片)\n• flex (Flex 訊息)\n• sticker (貼圖)\n• quick (快速回覆)\n• imagemap (圖片地圖)\n• push (主動推播)")
         )
 
 
@@ -199,15 +255,47 @@ def handle_audio_message(event):
     )
 
 
+@handler.add(MessageEvent, message=VideoMessage)
+def handle_video_message(event):
+    content = line_bot_api.get_message_content(event.message.id).content
+    line_bot_api.reply_message(
+        event.reply_token,
+        TextSendMessage(text=f"收到影片！長度 {event.message.duration} 毫秒，大小 {len(content)} 位元組。"),
+    )
+
+
+@handler.add(MessageEvent, message=FileMessage)
+def handle_file_message(event):
+    content = line_bot_api.get_message_content(event.message.id).content
+    line_bot_api.reply_message(
+        event.reply_token,
+        TextSendMessage(text=f"收到檔案「{event.message.file_name}」，大小 {len(content)} 位元組。"),
+    )
+
+
+@handler.add(FollowEvent)
+def handle_follow(event):
+    # 使用者第一次加入（或解除封鎖）時觸發
+    line_bot_api.reply_message(event.reply_token, TextSendMessage(text="歡迎使用 LocalBot！輸入任何文字看看可以做什麼。"))
+
+
+@handler.add(UnfollowEvent)
+def handle_unfollow(event):
+    # 使用者封鎖了 Bot，之後的推播都不會送達
+    print(f"[Bot] {event.source.user_id} 封鎖了 Bot")
+
+
 @handler.add(PostbackEvent)
 def handle_postback(event):
     data = event.postback.data
+    params = event.postback.params or {}
     reply_token = event.reply_token
-    print(f"[Bot] Postback from {event.source.user_id}: {data}")
+    print(f"[Bot] Postback from {event.source.user_id}: {data} {params}")
 
+    extra = f"\n選擇的時間: {params}" if params else ""
     line_bot_api.reply_message(
         reply_token,
-        TextSendMessage(text=f"已收到 Postback 操作！\n回傳資料: {data}")
+        TextSendMessage(text=f"已收到 Postback 操作！\n回傳資料: {data}{extra}")
     )
 
 

@@ -270,6 +270,158 @@ class FlexSendMessage(SendMessage):
         self.contents = contents.as_json_dict() if hasattr(contents, 'as_json_dict') else contents
 
 
+# ============================================================================
+# Imagemap
+# ============================================================================
+class BaseSize(BaseJsonModel):
+    def __init__(self, height: int = 1040, width: int = 1040):
+        self.height = height
+        self.width = width
+
+
+class ImagemapArea(BaseJsonModel):
+    def __init__(self, x: int = 0, y: int = 0, width: int = 0, height: int = 0):
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+
+
+class ImagemapAction(BaseJsonModel):
+    def __init__(self, type: str, area: Optional[ImagemapArea] = None, label: Optional[str] = None):
+        self.type = type
+        self.area = area
+        self.label = label
+
+
+class URIImagemapAction(ImagemapAction):
+    def __init__(self, link_uri: str = "", area: Optional[ImagemapArea] = None, label: Optional[str] = None):
+        super().__init__(type="uri", area=area, label=label)
+        self.linkUri = link_uri
+
+
+class MessageImagemapAction(ImagemapAction):
+    def __init__(self, text: str = "", area: Optional[ImagemapArea] = None, label: Optional[str] = None):
+        super().__init__(type="message", area=area, label=label)
+        self.text = text
+
+
+class ClipboardImagemapAction(ImagemapAction):
+    def __init__(self, clipboard_text: str = "", area: Optional[ImagemapArea] = None, label: Optional[str] = None):
+        super().__init__(type="clipboard", area=area, label=label)
+        self.clipboardText = clipboard_text
+
+
+class ExternalLink(BaseJsonModel):
+    def __init__(self, link_uri: str = "", label: str = ""):
+        self.linkUri = link_uri
+        self.label = label
+
+
+class Video(BaseJsonModel):
+    def __init__(self, original_content_url: str = "", preview_image_url: str = "",
+                 area: Optional[ImagemapArea] = None, external_link: Optional[ExternalLink] = None):
+        self.originalContentUrl = original_content_url
+        self.previewImageUrl = preview_image_url
+        self.area = area
+        self.externalLink = external_link
+
+
+class ImagemapSendMessage(SendMessage):
+    def __init__(self, base_url: str, alt_text: str, base_size: BaseSize,
+                 video: Optional[Video] = None, actions: Optional[List[ImagemapAction]] = None,
+                 quick_reply: Any = None):
+        super().__init__(type="imagemap", quick_reply=quick_reply)
+        self.baseUrl = base_url
+        self.altText = alt_text
+        self.baseSize = base_size
+        self.video = video
+        self.actions = actions or []
+
+
+# ============================================================================
+# Rich Menu
+# ============================================================================
+class RichMenuSize(BaseJsonModel):
+    def __init__(self, width: int = 2500, height: int = 1686):
+        self.width = width
+        self.height = height
+
+
+class RichMenuBounds(BaseJsonModel):
+    def __init__(self, x: int = 0, y: int = 0, width: int = 0, height: int = 0):
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+
+
+class RichMenuArea(BaseJsonModel):
+    def __init__(self, bounds: Optional[RichMenuBounds] = None, action: Optional[Action] = None):
+        self.bounds = bounds
+        self.action = action
+
+
+class RichMenu(BaseJsonModel):
+    def __init__(self, size: Optional[RichMenuSize] = None, selected: bool = False, name: str = "",
+                 chat_bar_text: str = "", areas: Optional[List[RichMenuArea]] = None):
+        self.size = size or RichMenuSize()
+        self.selected = selected
+        self.name = name
+        self.chatBarText = chat_bar_text
+        self.areas = areas or []
+
+
+class RichMenuResponse(BaseJsonModel):
+    """get_rich_menu / get_rich_menu_list 的回傳物件（同時提供 snake_case 與 camelCase）。"""
+    def __init__(self, rich_menu_id: str = "", size: Any = None, selected: bool = False, name: str = "",
+                 chat_bar_text: str = "", areas: Optional[List[Any]] = None):
+        self.richMenuId = rich_menu_id
+        self.size = size
+        self.selected = selected
+        self.name = name
+        self.chatBarText = chat_bar_text
+        self.areas = areas or []
+        self._snake = {"rich_menu_id": rich_menu_id, "chat_bar_text": chat_bar_text}
+
+    def __getattr__(self, item):
+        snake = self.__dict__.get("_snake", {})
+        if item in snake:
+            return snake[item]
+        raise AttributeError(item)
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "RichMenuResponse":
+        return cls(
+            rich_menu_id=data.get("richMenuId", ""),
+            size=data.get("size"),
+            selected=data.get("selected", False),
+            name=data.get("name", ""),
+            chat_bar_text=data.get("chatBarText", ""),
+            areas=data.get("areas", []),
+        )
+
+
+class RichMenuAlias(BaseJsonModel):
+    def __init__(self, rich_menu_alias_id: str = "", rich_menu_id: str = ""):
+        self.richMenuAliasId = rich_menu_alias_id
+        self.richMenuId = rich_menu_id
+        self._snake = {"rich_menu_alias_id": rich_menu_alias_id, "rich_menu_id": rich_menu_id}
+
+    def __getattr__(self, item):
+        snake = self.__dict__.get("_snake", {})
+        if item in snake:
+            return snake[item]
+        raise AttributeError(item)
+
+
+class RichMenuSwitchAction(Action):
+    def __init__(self, label: Optional[str] = None, rich_menu_alias_id: str = "", data: str = ""):
+        super().__init__(type="richmenuswitch", label=label)
+        self.richMenuAliasId = rich_menu_alias_id
+        self.data = data
+
+
 class Sender(BaseJsonModel):
     def __init__(self, name: Optional[str] = None, icon_url: Optional[str] = None):
         self.name = name
@@ -297,14 +449,38 @@ class Profile(BaseJsonModel):
 
 
 
+class MessageQuota(BaseJsonModel):
+    def __init__(self, type: str = "none", value: Optional[int] = None):
+        self.type = type
+        self.value = value
+
+
+class QuotaConsumption(BaseJsonModel):
+    def __init__(self, total_usage: int = 0):
+        self.total_usage = total_usage
+        self.totalUsage = total_usage
+
+
+class ClipboardAction(Action):
+    def __init__(self, label: Optional[str] = None, clipboard_text: str = ""):
+        super().__init__(type="clipboard", label=label)
+        self.clipboardText = clipboard_text
+
+
 # ============================================================================
 # Flex Message Containers & Components (for SDK compatibility)
 # ============================================================================
+def _camel(name: str) -> str:
+    """max_lines -> maxLines（官方 v1 SDK 的 Flex 參數為 snake_case）"""
+    head, *rest = name.split("_")
+    return head + "".join(p[:1].upper() + p[1:] for p in rest)
+
+
 class FlexContainer(BaseJsonModel):
     def __init__(self, type: str, **kwargs):
         self.type = type
         for k, v in kwargs.items():
-            setattr(self, k, v)
+            setattr(self, _camel(k), v)
 
 
 class BubbleContainer(FlexContainer):
@@ -329,7 +505,7 @@ class FlexComponent(BaseJsonModel):
     def __init__(self, type: str, **kwargs):
         self.type = type
         for k, v in kwargs.items():
-            setattr(self, k, v)
+            setattr(self, _camel(k), v)
 
 
 class BoxComponent(FlexComponent):
@@ -379,6 +555,48 @@ class FillerComponent(FlexComponent):
         super().__init__(type="filler", **kwargs)
 
 
+class SpanComponent(FlexComponent):
+    def __init__(self, text: str = "", **kwargs):
+        super().__init__(type="span", **kwargs)
+        self.text = text
+
+
+class VideoComponent(FlexComponent):
+    def __init__(self, url: str = "", preview_url: str = "", alt_content: Any = None, **kwargs):
+        super().__init__(type="video", **kwargs)
+        self.url = url
+        self.previewUrl = preview_url
+        self.altContent = alt_content
+
+
+class BlockStyle(BaseJsonModel):
+    def __init__(self, background_color: Optional[str] = None, separator: Optional[bool] = None,
+                 separator_color: Optional[str] = None):
+        self.backgroundColor = background_color
+        self.separator = separator
+        self.separatorColor = separator_color
+
+
+class BubbleStyle(BaseJsonModel):
+    def __init__(self, header: Optional[BlockStyle] = None, hero: Optional[BlockStyle] = None,
+                 body: Optional[BlockStyle] = None, footer: Optional[BlockStyle] = None):
+        self.header = header
+        self.hero = hero
+        self.body = body
+        self.footer = footer
+
+
+class LinearGradientBackground(BaseJsonModel):
+    def __init__(self, angle: str = "0deg", start_color: str = "#FFFFFF", end_color: str = "#000000",
+                 center_color: Optional[str] = None, center_position: Optional[str] = None):
+        self.type = "linearGradient"
+        self.angle = angle
+        self.startColor = start_color
+        self.endColor = end_color
+        self.centerColor = center_color
+        self.centerPosition = center_position
+
+
 
 # ============================================================================
 # Sources
@@ -426,16 +644,22 @@ class Message(BaseJsonModel):
 
 
 class TextMessage(Message):
-    def __init__(self, id: str, text: str = "", quote_token: Optional[str] = None):
+    def __init__(self, id: str, text: str = "", quote_token: Optional[str] = None,
+                 quoted_message_id: Optional[str] = None):
         super().__init__(id=id, type="text")
         self.text = text
         self.quoteToken = quote_token
+        self.quote_token = quote_token  # 官方 v1 SDK 使用 snake_case 屬性
+        # 使用者在 App 長按「回覆」時，被引用的那則訊息 id（與 LINE 相同）
+        self.quotedMessageId = quoted_message_id
+        self.quoted_message_id = quoted_message_id
 
 
 class ImageMessage(Message):
     def __init__(self, id: str, content_provider: Optional[Dict[str, Any]] = None):
         super().__init__(id=id, type="image")
         self.contentProvider = content_provider or {"type": "line"}
+        self.content_provider = self.contentProvider
 
 
 class AudioMessage(Message):
@@ -443,6 +667,7 @@ class AudioMessage(Message):
         super().__init__(id=id, type="audio")
         self.duration = duration
         self.contentProvider = content_provider or {"type": "line"}
+        self.content_provider = self.contentProvider
 
 
 class VideoMessage(Message):
@@ -450,6 +675,7 @@ class VideoMessage(Message):
         super().__init__(id=id, type="video")
         self.duration = duration
         self.contentProvider = content_provider or {"type": "line"}
+        self.content_provider = self.contentProvider
 
 
 class StickerMessage(Message):
@@ -458,6 +684,9 @@ class StickerMessage(Message):
         self.packageId = str(package_id)
         self.stickerId = str(sticker_id)
         self.stickerResourceType = sticker_resource_type
+        self.package_id = self.packageId
+        self.sticker_id = self.stickerId
+        self.sticker_resource_type = sticker_resource_type
 
 
 class LocationMessage(Message):
@@ -475,6 +704,8 @@ class FileMessage(Message):
         super().__init__(id=id, type="file")
         self.fileName = file_name
         self.fileSize = file_size
+        self.file_name = file_name
+        self.file_size = file_size
 
 
 # ============================================================================
@@ -615,7 +846,8 @@ def parse_event(data: Dict[str, Any]) -> Optional[Event]:
 
         message_obj: Optional[Message] = None
         if msg_type == "text":
-            message_obj = TextMessage(id=msg_id, text=msg_data.get("text", ""))
+            message_obj = TextMessage(id=msg_id, text=msg_data.get("text", ""), quote_token=msg_data.get("quoteToken"),
+                                      quoted_message_id=msg_data.get("quotedMessageId"))
         elif msg_type == "image":
             message_obj = ImageMessage(id=msg_id, content_provider=msg_data.get("contentProvider"))
         elif msg_type == "audio":
